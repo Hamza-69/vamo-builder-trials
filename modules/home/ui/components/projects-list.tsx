@@ -3,36 +3,32 @@
 import Link from "next/link"
 import Image from "next/image"
 import { formatDistanceToNow } from "date-fns"
-import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export const ProjectsList = () => {
-  const {data: projects, isLoading} = useQuery(trpc.projects.getMany.queryOptions())
-
+  const projects = [
+    {
+      id: "1",
+      name: "Project 1",
+      updatedAt: new Date()
+    },
+    {
+      id: "2",
+      name: "Project 2",
+      updatedAt: new Date()
+    },
+    {
+      id: "3",
+      name: "Project 3",
+      updatedAt: new Date()
+    }
+  ]
+  
   return (
     <div className="w-full bg-white dark:bg-sidebar rounded-xl p-8 border flex flex-col gap-y-6 sm:gap-y-4">
-      <h2 className="text-2xl font-semibold">
-        {!isLoaded ? (
-          <Skeleton className="h-8 w-40" />
-        ) : (
-          <>{user?.firstName || "Saved"}{user?.firstName && "'s"} Vibes</>
-        )}
-      </h2>
-      {isLoaded && !user?.firstName && (
-        <div className="flex items-center gap-x-2">
-          <SignInButton>
-              Sign In
-          </SignInButton>
-          <p>or</p>
-          <SignUpButton>
-              Sign Up
-          </SignUpButton>
-          <p>to create vibes.</p>
-        </div>
-      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {isLoading ? (
+        {false ? (
           Array.from({length: 3}).map((_, i) => (
             <div key={i} className="flex items-center gap-x-4 p-4 border rounded-xl bg-muted">
               <Skeleton className="h-8 w-8 rounded-full" />
@@ -42,7 +38,7 @@ export const ProjectsList = () => {
               </div>
             </div>
           ))
-        ) : projects?.length === 0 ? (
+        ) : false ? (
             <p className="text-sm text-muted-foreground">
               No Vibes Found
             </p>

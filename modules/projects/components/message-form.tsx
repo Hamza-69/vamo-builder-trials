@@ -3,13 +3,10 @@ import {zodResolver} from "@hookform/resolvers/zod"
 import {z} from "zod"
 import TextareaAutosize from "react-textarea-autosize"
 import { ArrowUpIcon, Loader2Icon } from "lucide-react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {Form, FormField} from "@/components/ui/form"
-import { useRouter } from "next/navigation"
 
 interface Props {
   projectId: string
@@ -20,58 +17,27 @@ const formSchema = z.object({
 })
 
 export const MessageForm = ({projectId}: Props) => {
-  const router = useRouter()
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       value: "",
     }
   })
-  const queryClient = useQueryClient()
 
   const [isFocused, setIsFocused] = useState(false)
 
-  const trpc = useTRPC()
-  const createMessage = useMutation(trpc.messages.create.mutationOptions({
-    onSuccess: () => {
-      form.reset()
-      queryClient.invalidateQueries(
-        trpc.messages.getMany.queryOptions({projectId})
-      )
-      queryClient.invalidateQueries(
-        trpc.usage.status.queryOptions()
-      )
-    },
-    onError: (error) => {
-      toast.error(error.message)
-
-      if (error.data?.code === "TOO_MANY_REQUESTS") {
-        router.push("/pricing")
-      }
-
-    }
-  }))
-  const isPending = createMessage.isPending
-  const isDisabled = isPending || !form.formState.isValid
+  const isPending = false
+  const isDisabled = isPending
   
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    await createMessage.mutateAsync({
-      value: values.value,
-      projectId
-    })
+  const onSubmit = async () => {
   }
-
-  const {data: usage} = useQuery(trpc.usage.status.queryOptions())
-  const showUsage = !!usage
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}
       className={cn(
         "relative border p-4 pt-1 rounded-xl bg-sidebar dark:bg-sidebar transition-all",
-        isFocused && "shadow-xs",
-        showUsage && "rounded-t-none"
+        isFocused && "shadow-xs"
       )}
       >
         <FormField
@@ -85,7 +51,7 @@ export const MessageForm = ({projectId}: Props) => {
           onBlur={() => setIsFocused(false)}
           minRows={2}
           maxRows={8}
-          className="pt-4 resize-none border-none w-full outline-none bg-transparent"
+          className="pt-4 resize-none border-none w-full outline-hidden bg-transparent"
           placeholder="What would you like to build?"
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
