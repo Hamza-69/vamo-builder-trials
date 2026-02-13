@@ -11,14 +11,18 @@ interface MessageCardProps {
 
 interface UserMessageProps {
   content: string
+  createdAt: Date
 }
 
-const UserMessage = ({content} : UserMessageProps) => {
+const UserMessage = ({content, createdAt} : UserMessageProps) => {
   return (
-    <div className="flex justify-end pb-4 pr-2 pl-10">
+    <div className="flex flex-col group items-end gap-1 pb-4 pr-2 pl-10">
       <Card className="rounded-lg bg-muted shadow-none p-3 border-none max-w-[80%] wrap-break-word">
         {content}
       </Card>
+      <span className="text-xs text-muted-foreground mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {format(createdAt, "HH:mm 'on' MMM dd, yyyy")}
+      </span>
     </div>
   )
 }
@@ -63,6 +67,6 @@ export const MessageCard = ({content, role, createdAt, type}:MessageCardProps) =
   }
 
   return (
-    <UserMessage content = {content}/>
+    <UserMessage content = {content} createdAt={createdAt}/>
   )
 }
