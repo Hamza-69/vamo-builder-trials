@@ -1,8 +1,9 @@
+"use client"
+
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { ExternalLinkIcon, RefreshCcwIcon, MonitorIcon, TabletIcon, SmartphoneIcon, LinkIcon, ImageIcon, Settings2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Hint } from "@/components/hints"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -79,7 +80,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   // ── No URL: empty state ──────────────────────────────────────────────
   if (!url) {
     return (
-      <div className="flex flex-col w-full h-full items-center justify-center gap-4 p-8 text-center">
+      <div className="flex flex-col w-full flex-1 min-h-0 items-center justify-center gap-4 p-8 text-center">
         {screenshotUrl ? (
           <Image
             src={screenshotUrl}
@@ -149,14 +150,12 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   }
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full flex-1 min-h-0">
       {/* Toolbar */}
-      <div className="p-2 border-b flex bg-sidebar items-center gap-x-4">
-        <Hint text="Refresh" side="bottom" align="start">
-          <Button size="sm" variant="outline" onClick={onRefresh}>
-            <RefreshCcwIcon />
-          </Button>
-        </Hint>
+      <div className="p-2 border-b flex bg-sidebar items-center gap-x-4 shrink-0">
+        <Button size="sm" variant="outline" onClick={onRefresh}>
+          <RefreshCcwIcon  className="text-white" />
+        </Button>
 
         {(isTablet || isDesktop) && (
           <div className="flex items-center mx-4">
@@ -178,23 +177,19 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
           </div>
         )}
 
-        <Hint text="Click to copy." side="bottom">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleCopy}
-            className="flex flex-1 justify-start text-start font-normal"
-            disabled={copied}
-          >
-            <span className="truncate">{url}</span>
-          </Button>
-        </Hint>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleCopy}
+          className="flex flex-1 justify-start text-start font-normal"
+          disabled={copied}
+        >
+          <span className="truncate text-white">{url}</span>
+        </Button>
 
-        <Hint text="Open in a new tab." side="bottom" align="start">
-          <Button size="sm" variant="outline" onClick={() => window.open(url, "_blank")}>
-            <ExternalLinkIcon />
-          </Button>
-        </Hint>
+        <Button size="sm" variant="outline" onClick={() => window.open(url, "_blank")}>
+          <ExternalLinkIcon className="text-white"/>
+        </Button>
       </div>
 
       {/* Preview area */}

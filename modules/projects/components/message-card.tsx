@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
+import Image from "next/image"
 
 interface MessageCardProps {
   content: string;
@@ -40,9 +41,7 @@ const AssistantMessage = ({content, createdAt, type} : AssistantMessage) => {
       type==="FAILURE" && "text-red-700 dark:text-red-500",
     )}>
       <div className="flex items-center gap-2 pl-2 mb-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground font-bold leading-none">
-          <span className="mt-[2px]">V</span>
-        </div>
+        <Image src="/icon.svg" alt="Vamo Icon" width={16} height={16} />
         <span className="text-sm font-medium">Vamo</span>
         <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
           {format(createdAt, "HH:mm 'on' MMM dd, yyyy" )}
