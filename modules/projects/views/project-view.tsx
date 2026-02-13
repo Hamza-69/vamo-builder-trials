@@ -26,6 +26,7 @@ export const ProjectView = ({ projectId }: Props) => {
   const isMobile = useMediaQuery("(max-width: 767px)")
 
   const url = "https://vibable.xyz" // Replace with actual URL from your data source
+  const screenshotUrl = "https://placehold.co/600x400" // Replace with actual screenshot URL
 
   useEffect(() => {
     setIsMounted(true)
@@ -57,7 +58,7 @@ export const ProjectView = ({ projectId }: Props) => {
               </ErrorBoundary>
             </TabsContent>
             <TabsContent value="preview" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
-              <WebPreview url={url} />
+              <WebPreview url={url} screenshotUrl={screenshotUrl} />
             </TabsContent>
             <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
               <BussinessPage />
@@ -163,7 +164,7 @@ export const ProjectView = ({ projectId }: Props) => {
             style={{ flex: flexValues.preview }}
             className={cn("flex flex-col min-h-0", showMessages && "border-l")}
           >
-            <WebPreview url={url} />
+            <WebPreview url={url} screenshotUrl={screenshotUrl} />
           </div>
         )}
 
