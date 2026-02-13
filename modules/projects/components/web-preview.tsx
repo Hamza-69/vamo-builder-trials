@@ -154,7 +154,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
       {/* Toolbar */}
       <div className="p-2 border-b flex bg-sidebar items-center gap-x-4 shrink-0">
         <Button size="sm" variant="outline" onClick={onRefresh}>
-          <RefreshCcwIcon  className="text-white" />
+          <RefreshCcwIcon  className="text-foreground" />
         </Button>
 
         {(isTablet || isDesktop) && (
@@ -184,11 +184,11 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
           className="flex flex-1 justify-start text-start font-normal"
           disabled={copied}
         >
-          <span className="truncate text-white">{url}</span>
+          <span className="truncate text-foreground">{url}</span>
         </Button>
 
         <Button size="sm" variant="outline" onClick={() => window.open(url, "_blank")}>
-          <ExternalLinkIcon className="text-white"/>
+          <ExternalLinkIcon className="text-foreground"/>
         </Button>
       </div>
 

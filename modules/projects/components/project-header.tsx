@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
-  ArrowLeftIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  MoreVerticalIcon,
   PencilIcon,
   StoreIcon,
   SparklesIcon,
@@ -17,6 +20,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ThemeSubmenu } from "@/components/theme-submenu"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MessageSquare } from "lucide-react"
@@ -136,19 +147,29 @@ export const ProjectHeader = ({
     <header className="px-3 py-2 grid grid-cols-[1fr_auto_1fr] items-center border-b gap-x-2">
       {/* ── Left: back + name + pineapple ── */}
       <div className="flex items-center gap-1.5 min-w-0">
-        {/* Back to /projects */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" asChild>
-                <Link href="/projects">
-                  <ArrowLeftIcon className="size-4" />
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Back to projects</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Project dropdown (Go to Dashboard + Appearance) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium hover:opacity-75 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Image src="/icon.svg" alt="Vamo" height={18} width={18} />
+              <span className="truncate max-w-36">{project?.name ?? "Loading…"}</span>
+              <ChevronDownIcon className="size-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" style={{ zIndex: 100 }}>
+            <DropdownMenuItem asChild>
+              <Link href="/projects">
+                <ChevronLeftIcon className="size-4" />
+                <span>Go to Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <ThemeSubmenu />
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Project name (inline‑editable) */}
         {isEditing ? (
@@ -163,9 +184,8 @@ export const ProjectHeader = ({
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1 text-sm font-medium hover:opacity-75 transition-opacity truncate max-w-48"
+            className="flex items-center gap-1 text-sm font-medium hover:opacity-75 transition-opacity"
           >
-            <span className="truncate">{project?.name ?? "Loading…"}</span>
             <PencilIcon className="size-3 text-muted-foreground shrink-0" />
           </button>
         )}
