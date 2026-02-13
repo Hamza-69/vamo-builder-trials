@@ -45,7 +45,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
         )}
 
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-200" />
+        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/5 transition-colors duration-200" />
       </div>
 
       {/* Info */}

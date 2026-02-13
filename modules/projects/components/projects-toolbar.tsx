@@ -1,26 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Search, SlidersHorizontal, Plus, X } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Search, SlidersHorizontal, Plus, X, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  PopoverHeader,
-  PopoverTitle,
-} from "@/components/ui/popover";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import type { ProjectFilters, SortOption } from "../types";
 import { SORT_OPTIONS } from "../types";
 
@@ -35,26 +27,53 @@ export function ProjectsToolbar({
   onFiltersChange,
   onCreateNew,
 }: ProjectsToolbarProps) {
-  const [searchValue, setSearchValue] = useState(filters.search);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const handleSearchSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      onFiltersChange({ ...filters, search: searchValue });
-    },
-    [filters, searchValue, onFiltersChange],
-  );
+  // --- Local state for text inputs (debounced before pushing to URL) ---
+  const [searchValue, setSearchValue] = useState(filters.search);
+  const [valMinValue, setValMinValue] = useState(filters.valuationMin);
+  const [valMaxValue, setValMaxValue] = useState(filters.valuationMax);
+  const [progMinValue, setProgMinValue] = useState(filters.progressMin);
+  const [progMaxValue, setProgMaxValue] = useState(filters.progressMax);
+
+  // Debounce all text inputs (400ms)
+  const debouncedSearch = useDebouncedValue(searchValue, 400);
+  const debouncedValMin = useDebouncedValue(valMinValue, 400);
+  const debouncedValMax = useDebouncedValue(valMaxValue, 400);
+  const debouncedProgMin = useDebouncedValue(progMinValue, 400);
+  const debouncedProgMax = useDebouncedValue(progMaxValue, 400);
+
+  // Sync local state when URL params change externally (e.g. back/forward)
+  useEffect(() => setSearchValue(filters.search), [filters.search]);
+  useEffect(() => setValMinValue(filters.valuationMin), [filters.valuationMin]);
+  useEffect(() => setValMaxValue(filters.valuationMax), [filters.valuationMax]);
+  useEffect(() => setProgMinValue(filters.progressMin), [filters.progressMin]);
+  useEffect(() => setProgMaxValue(filters.progressMax), [filters.progressMax]);
+
+  // Push debounced values to URL when they settle
+  useEffect(() => {
+    if (
+      debouncedSearch !== filters.search ||
+      debouncedValMin !== filters.valuationMin ||
+      debouncedValMax !== filters.valuationMax ||
+      debouncedProgMin !== filters.progressMin ||
+      debouncedProgMax !== filters.progressMax
+    ) {
+      onFiltersChange({
+        ...filters,
+        search: debouncedSearch,
+        valuationMin: debouncedValMin,
+        valuationMax: debouncedValMax,
+        progressMin: debouncedProgMin,
+        progressMax: debouncedProgMax,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, debouncedValMin, debouncedValMax, debouncedProgMin, debouncedProgMax]);
 
   const handleSortChange = useCallback(
     (value: string) => {
       onFiltersChange({ ...filters, sortBy: value as SortOption });
-    },
-    [filters, onFiltersChange],
-  );
-
-  const handleFilterChange = useCallback(
-    (key: keyof ProjectFilters, value: string) => {
-      onFiltersChange({ ...filters, [key]: value });
     },
     [filters, onFiltersChange],
   );
@@ -67,6 +86,10 @@ export function ProjectsToolbar({
   ].filter(Boolean).length;
 
   const clearFilters = useCallback(() => {
+    setValMinValue("");
+    setValMaxValue("");
+    setProgMinValue("");
+    setProgMaxValue("");
     onFiltersChange({
       ...filters,
       valuationMin: "",
@@ -77,140 +100,131 @@ export function ProjectsToolbar({
   }, [filters, onFiltersChange]);
 
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-      {/* Search */}
-      <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        <Input
-          placeholder="Search projects…"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          className="pl-9 pr-4"
-        />
-      </form>
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search projects…"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            className="pl-9 pr-4"
+          />
+        </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Sort dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              Sort
-              <span className="text-muted-foreground text-xs">
-                {SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup
-              value={filters.sortBy}
-              onValueChange={handleSortChange}
-            >
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Sort select */}
+          <Select value={filters.sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="h-8 w-[180px] text-sm">
+              <SelectValue placeholder="Sort by…" />
+            </SelectTrigger>
+            <SelectContent>
               {SORT_OPTIONS.map((option) => (
-                <DropdownMenuRadioItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
-                </DropdownMenuRadioItem>
+                </SelectItem>
               ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </SelectContent>
+          </Select>
 
-        {/* Filters popover */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <SlidersHorizontal className="size-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80">
-            <PopoverHeader>
-              <PopoverTitle>Filter projects</PopoverTitle>
-            </PopoverHeader>
-            <div className="space-y-4 pt-2">
-              {/* Valuation range */}
-              <fieldset>
-                <legend className="text-sm font-medium mb-2">Valuation range</legend>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.valuationMin}
-                    onChange={(e) =>
-                      handleFilterChange("valuationMin", e.target.value)
-                    }
-                    className="h-8 text-sm"
-                  />
-                  <span className="text-muted-foreground text-sm">–</span>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.valuationMax}
-                    onChange={(e) =>
-                      handleFilterChange("valuationMax", e.target.value)
-                    }
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </fieldset>
+          {/* Filter toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            className="gap-1.5"
+          >
+            <SlidersHorizontal className="size-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {activeFilterCount}
+              </Badge>
+            )}
+            <ChevronDown
+              className={`size-3.5 transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+            />
+          </Button>
 
-              {/* Progress score range */}
-              <fieldset>
-                <legend className="text-sm font-medium mb-2">Progress score</legend>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    min={0}
-                    max={100}
-                    value={filters.progressMin}
-                    onChange={(e) =>
-                      handleFilterChange("progressMin", e.target.value)
-                    }
-                    className="h-8 text-sm"
-                  />
-                  <span className="text-muted-foreground text-sm">–</span>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    min={0}
-                    max={100}
-                    value={filters.progressMax}
-                    onChange={(e) =>
-                      handleFilterChange("progressMax", e.target.value)
-                    }
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </fieldset>
-
-              {activeFilterCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="w-full gap-1.5 text-muted-foreground"
-                >
-                  <X className="size-3.5" />
-                  Clear filters
-                </Button>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Create new */}
-        <Button size="sm" onClick={onCreateNew} className="gap-1.5">
-          <Plus className="size-4" />
-          New Project
-        </Button>
+          {/* Create new */}
+          <Button size="sm" onClick={onCreateNew} className="gap-1.5">
+            <Plus className="size-4" />
+            New Project
+          </Button>
+        </div>
       </div>
+
+      {/* Expandable filter panel */}
+      {filtersOpen && (
+        <div className="rounded-lg border bg-card p-4 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Valuation range */}
+            <fieldset>
+              <legend className="text-sm font-medium text-foreground mb-2">
+                Valuation range
+              </legend>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={valMinValue}
+                  onChange={(e) => setValMinValue(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <span className="text-muted-foreground text-sm">–</span>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={valMaxValue}
+                  onChange={(e) => setValMaxValue(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </fieldset>
+
+            {/* Progress score range */}
+            <fieldset>
+              <legend className="text-sm font-medium text-foreground mb-2">
+                Progress score
+              </legend>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  min={0}
+                  max={100}
+                  value={progMinValue}
+                  onChange={(e) => setProgMinValue(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <span className="text-muted-foreground text-sm">–</span>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  min={0}
+                  max={100}
+                  value={progMaxValue}
+                  onChange={(e) => setProgMaxValue(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </fieldset>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="gap-1.5 text-muted-foreground"
+            >
+              <X className="size-3.5" />
+              Clear all filters
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ProjectsToolbar, ProjectsGrid } from "../components";
 import { useProjects } from "../hooks/use-projects";
-import { DEFAULT_FILTERS, type ProjectFilters, type Project } from "../types";
+import {
+  filtersFromParams,
+  filtersToParams,
+  type ProjectFilters,
+  type Project,
+} from "../types";
 
 interface ProjectsViewProps {
   userName?: string | null;
@@ -12,17 +17,29 @@ interface ProjectsViewProps {
 
 export function ProjectsView({ userName }: ProjectsViewProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { projects, isLoading, error, fetchProjects } = useProjects();
-  const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
 
-  // Fetch on mount and whenever filters change
+  // Derive filters from URL search params (single source of truth)
+  const filters = useMemo(
+    () => filtersFromParams(searchParams),
+    [searchParams],
+  );
+
+  // Fetch whenever URL-derived filters change
   useEffect(() => {
     fetchProjects(filters);
   }, [filters, fetchProjects]);
 
-  const handleFiltersChange = useCallback((next: ProjectFilters) => {
-    setFilters(next);
-  }, []);
+  // Push filter changes to the URL (shallow navigation, no scroll reset)
+  const handleFiltersChange = useCallback(
+    (next: ProjectFilters) => {
+      const qs = filtersToParams(next);
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [router, pathname],
+  );
 
   const handleCreateNew = useCallback(() => {
     router.push("/projects/new");
