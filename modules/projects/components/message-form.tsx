@@ -7,6 +7,7 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {Form, FormField} from "@/components/ui/form"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface Props {
   projectId: string
@@ -23,6 +24,8 @@ export const MessageForm = ({projectId}: Props) => {
       value: "",
     }
   })
+
+  const isDesktop = useMediaQuery("(min-width: 1280px)")
 
   const [isFocused, setIsFocused] = useState(false)
 
@@ -63,16 +66,16 @@ export const MessageForm = ({projectId}: Props) => {
         )}
         />
         <div className="flex gap-xp2 items-end justify-between pt-2">
-          <div className="text-[10px] text-muted-foreground font-mono">
+          {isDesktop && <div className="text-[10px] text-muted-foreground font-mono">
             <kbd className="ml-auto  pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
               <span>&#x2318;</span>Enter
             </kbd>
             &nbsp;to submit
-          </div>
+          </div>}
           <Button
           disabled={isDisabled}
           className={cn(
-            "size-8 rounded-full",
+            "size-8 rounded-full ml-auto",
             isDisabled && "bg-muted-foreground border"
           )}
           >
