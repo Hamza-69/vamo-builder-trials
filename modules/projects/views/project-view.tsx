@@ -63,7 +63,7 @@ export const ProjectView = ({projectId}: Props) =>{
             variant="outline" // or "default"
           >
             {["chat", "preview", "business"].map((value) => (
-              <ToggleGroupItem key={value} value={value}>
+              <ToggleGroupItem key={value} value={value} className="hover:bg-secondary hover:text-primary">
                 {value.charAt(0).toUpperCase() + value.slice(1)}
               </ToggleGroupItem>
             ))}
