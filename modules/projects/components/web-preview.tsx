@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/hints"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface Props {
   url: string
@@ -14,7 +15,10 @@ type DeviceSate = "desktop" | "tablet" | "mobile"
 export function WebPreview({url}: Props) {
   const [fragmentKey, setFragmentKey] = useState(0)
   const [copied, setCopied] = useState(false)
-  const [device, setDevice] = useState<DeviceSate>("desktop")
+  const isDesktop = useMediaQuery("(min-width: 1280px)")
+  const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1279px)")
+  const isMobile = useMediaQuery("(max-width: 767px)")
+  const [device, setDevice] = useState<DeviceSate>(isDesktop ? "desktop" : isMobile ? "mobile" : "tablet")
 
   const onRefresh = () => {
     setFragmentKey((prev) => prev+1)
@@ -35,19 +39,21 @@ export function WebPreview({url}: Props) {
         </Button>
         </Hint>
 
-        <div className="flex items-center mx-4">
-          <ToggleGroup type="single" value={device} onValueChange={(v: DeviceSate) => v && setDevice(v)}>
-             <ToggleGroupItem value="desktop" size="sm">
-               <MonitorIcon className="h-4 w-4" />
-             </ToggleGroupItem>
-             <ToggleGroupItem value="tablet" size="sm">
-               <TabletIcon className="h-4 w-4" />
-             </ToggleGroupItem>
-             <ToggleGroupItem value="mobile" size="sm">
-               <SmartphoneIcon className="h-4 w-4" />
-             </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+        {(isTablet || isDesktop) && (
+          <div className="flex items-center mx-4">
+            <ToggleGroup type="single" value={device} onValueChange={(v: DeviceSate) => v && setDevice(v)}>
+              {isDesktop && <ToggleGroupItem value="desktop" size="sm">
+                <MonitorIcon className="h-4 w-4" />
+              </ToggleGroupItem>}
+              {(isTablet || isDesktop) && <ToggleGroupItem value="tablet" size="sm">
+                <TabletIcon className="h-4 w-4" />
+              </ToggleGroupItem>}
+              <ToggleGroupItem value="mobile" size="sm">
+                <SmartphoneIcon className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        )}
 
         <Hint text="Click to copy." side="bottom" >
           <Button size={"sm"} variant={"outline"} onClick={handleCopy} className="flex flex-1 justify-start text-start font-normal" disabled={!url || copied}>
@@ -72,7 +78,7 @@ export function WebPreview({url}: Props) {
           className={cn(
             "border bg-background transition-all duration-300 shadow-sm",
             device === "desktop" && "w-full h-full border-none",
-            device === "tablet" && "w-[768px] h-[calc(100%-2rem)] rounded-md",
+            device === "tablet" && cn("w-[768px] h-[calc(100%-2rem)] rounded-md", isTablet && "w-full h-full"),
             device === "mobile" && "w-[375px] h-[calc(100%-2rem)] rounded-md"
           )}
           sandbox="allow-forms allow-scripts allow-same-origin"
