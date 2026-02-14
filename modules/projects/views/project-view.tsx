@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { MessagesContainer } from "../components/messages-container"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { ErrorBoundary } from "react-error-boundary"
 import { MessagesSkeleton } from "../components/message-loading"
 import BussinessPage from "../components/bussiness-page"
@@ -10,6 +10,7 @@ import { WebPreview } from "../components/web-preview"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProjectHeader } from "../components/project-header"
+import type { ChatResponse } from "../hooks/use-chat"
 
 interface Props {
   projectId: string
@@ -18,9 +19,18 @@ interface Props {
 export const ProjectView = ({ projectId }: Props) => {
   const [activePanels, setActivePanels] = useState<string[]>(["chat", "preview", "business"])
   const [isMounted, setIsMounted] = useState(false)
+  const [businessPanelKey, setBusinessPanelKey] = useState(0)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1279px)")
   const isMobile = useMediaQuery("(max-width: 767px)")
+
+  const handleBusinessUpdate = useCallback(
+    (_update: ChatResponse["business_update"]) => {
+      // Trigger a re-render of the business panel
+      setBusinessPanelKey((k) => k + 1)
+    },
+    [],
+  )
 
   const url = "https://vibable.xyz"
   const screenshotUrl = "https://placehold.co/600x400"
@@ -59,7 +69,7 @@ export const ProjectView = ({ projectId }: Props) => {
             <TabsContent value="chat" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
               <ErrorBoundary fallback={<p className="p-4">Error loading messages.</p>}>
                 <Suspense fallback={<MessagesSkeleton />}>
-                  <MessagesContainer projectId={projectId} />
+                  <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} />
                 </Suspense>
               </ErrorBoundary>
             </TabsContent>
@@ -67,7 +77,7 @@ export const ProjectView = ({ projectId }: Props) => {
               <WebPreview url={url} screenshotUrl={screenshotUrl} />
             </TabsContent>
             <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
-              <BussinessPage />
+              <BussinessPage key={businessPanelKey} />
             </TabsContent>
           </div>
         </Tabs>
@@ -116,7 +126,7 @@ export const ProjectView = ({ projectId }: Props) => {
   const chatSheetContent = (
     <ErrorBoundary fallback={<p className="p-4">Error loading messages.</p>}>
       <Suspense fallback={<MessagesSkeleton />}>
-        <MessagesContainer projectId={projectId} />
+        <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} />
       </Suspense>
     </ErrorBoundary>
   )
@@ -138,7 +148,7 @@ export const ProjectView = ({ projectId }: Props) => {
           <div style={{ flex: flexValues.messages }} className="flex flex-col min-h-0">
             <ErrorBoundary fallback={<p>Error loading messages.</p>}>
               <Suspense fallback={<MessagesSkeleton />}>
-                <MessagesContainer projectId={projectId} />
+                <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} />
               </Suspense>
             </ErrorBoundary>
           </div>
@@ -158,7 +168,7 @@ export const ProjectView = ({ projectId }: Props) => {
             style={{ flex: flexValues.business }}
             className={cn("flex flex-col min-h-0", (showMessages || showPreview) && "border-l")}
           >
-            <BussinessPage />
+            <BussinessPage key={businessPanelKey} />
           </div>
         )}
       </div>
