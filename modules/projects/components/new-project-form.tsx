@@ -29,6 +29,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { createClient } from "@/utils/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 
 const formSchema = z.object({
   name: z
@@ -171,6 +172,7 @@ export function NewProjectForm() {
       }
 
       toast.success("Project created!");
+      trackEvent("project_created", { projectId: data.project.id });
       router.push(`/projects/${data.project.id}`);
     } catch {
       toast.error("Something went wrong. Please try again.");

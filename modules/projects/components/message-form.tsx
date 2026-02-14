@@ -5,6 +5,7 @@ import TextareaAutosize from "react-textarea-autosize"
 import { ArrowUpIcon, Loader2Icon } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { trackEvent } from "@/lib/analytics"
 import { Button } from "@/components/ui/button"
 import {Form, FormField} from "@/components/ui/form"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -33,6 +34,10 @@ export const MessageForm = ({projectId}: Props) => {
   const isDisabled = isPending
   
   const onSubmit = async () => {
+    // TODO: implement actual message sending
+    // Once implemented, call:
+    // const messageId = result.id;
+    // trackEvent("prompt_sent", { projectId, messageId });
   }
 
   return (

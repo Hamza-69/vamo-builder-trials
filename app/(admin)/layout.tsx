@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { AppNavbar } from "@/components/app-navbar";
+import { PageViewTracker } from "@/components/page-view-tracker";
 
 export default async function AdminLayout({
   children,
@@ -29,6 +30,7 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <AppNavbar />
+      <PageViewTracker />
       <main className="flex-1">{children}</main>
     </div>
   );

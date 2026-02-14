@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Tabs,
   TabsContent,
@@ -15,8 +16,34 @@ import { RedemptionsTable } from "../components/redemptions-table";
 import { AnalyticsTable } from "../components/analytics-table";
 import { ProjectsTable } from "../components/projects-table";
 
+const VALID_TABS = ["overview", "users", "redemptions", "analytics", "projects"] as const;
+type AdminTab = (typeof VALID_TABS)[number];
+
 export function AdminView() {
   const admin = useAdmin();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const tabParam = searchParams.get("tab");
+  const activeTab: AdminTab = VALID_TABS.includes(tabParam as AdminTab)
+    ? (tabParam as AdminTab)
+    : "overview";
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "overview") {
+        params.delete("tab");
+      } else {
+        params.set("tab", value);
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const handleUserClick = useCallback((userId: string) => {
@@ -36,7 +63,7 @@ export function AdminView() {
         </p>
       </div>
 
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>

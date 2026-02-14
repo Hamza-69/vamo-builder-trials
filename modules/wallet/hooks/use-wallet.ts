@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCsrf } from "@/hooks/use-csrf";
+import { trackEvent } from "@/lib/analytics";
 
 export type SortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
@@ -208,6 +209,8 @@ export function useWallet() {
       if (!res.ok) {
         throw new Error(json.error || "Redemption failed");
       }
+
+      trackEvent("reward_redeemed", { amount, rewardType });
 
       // Refresh both profile and table
       await fetchTable();

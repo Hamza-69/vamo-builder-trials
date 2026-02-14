@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyCsrfToken } from "@/lib/csrf";
+import { trackEventServer } from "@/lib/analytics-server";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -192,6 +193,11 @@ export async function POST(request: NextRequest) {
     console.error("Failed to insert activity event:", eventError.message);
     // Non-blocking — project was already created
   }
+
+  // Track analytics event
+  await trackEventServer(supabase, user.id, "project_created", {
+    projectId: project.id,
+  }, project.id);
 
   return NextResponse.json({ project }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyCsrfToken } from "@/lib/csrf";
+import { trackEventServer } from "@/lib/analytics-server";
 
 /**
  * POST /api/redeem
@@ -76,6 +77,12 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+
+  // Track analytics event
+  await trackEventServer(supabase, user.id, "reward_redeemed", {
+    amount,
+    rewardType,
+  });
 
   return NextResponse.json({
     success: true,
