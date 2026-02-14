@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -12,18 +13,24 @@ import {
   Calendar,
   User,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
+import { useCsrf } from "@/hooks/use-csrf";
+import { toast } from "sonner";
 import type { ListingDetail, ListingMetrics, TimelineEvent } from "../types";
 
 interface ListingDetailViewProps {
   listing: ListingDetail;
+  isOwner?: boolean;
 }
 
-export function ListingDetailView({ listing }: ListingDetailViewProps) {
-  const screenshots = (listing.screenshots as string[] | null) ?? [];
+export function ListingDetailView({ listing, isOwner = false }: ListingDetailViewProps) {
+  const initialScreenshots = (listing.screenshots as string[] | null) ?? [];
+  const [screenshots, setScreenshots] = useState<string[]>(initialScreenshots);
+  const { csrfFetch } = useCsrf();
   const metrics = (listing.metrics as ListingMetrics | null) ?? {
     progress_score: listing.projects?.progress_score ?? 0,
     prompt_count: 0,
@@ -31,7 +38,36 @@ export function ListingDetailView({ listing }: ListingDetailViewProps) {
     timeline_snapshot: [],
   };
   const timelineSnapshot: TimelineEvent[] = metrics.timeline_snapshot ?? [];
-  const heroImage = screenshots[0] ?? listing.projects?.screenshot_url;
+  const defaultHero = screenshots[0] ?? listing.projects?.screenshot_url;
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const heroImage = selectedImage ?? defaultHero;
+
+  const removeScreenshot = async (urlToRemove: string) => {
+    const updated = screenshots.filter((u) => u !== urlToRemove);
+    try {
+      const res = await csrfFetch("/api/listings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listing_id: listing.id,
+          screenshots: updated,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to remove screenshot");
+      }
+      setScreenshots(updated);
+      if (selectedImage === urlToRemove) {
+        setSelectedImage(null);
+      }
+      toast.success("Screenshot removed");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to remove screenshot"
+      );
+    }
+  };
 
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-10 space-y-8">
@@ -68,19 +104,35 @@ export function ListingDetailView({ listing }: ListingDetailViewProps) {
 
           {/* Screenshot gallery */}
           {screenshots.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-2">
               {screenshots.map((url, idx) => (
-                <div
-                  key={idx}
-                  className="relative aspect-video rounded-md overflow-hidden bg-muted border"
-                >
-                  <Image
-                    src={url}
-                    alt={`Screenshot ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="180px"
-                  />
+                <div key={idx} className="relative group shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImage(url)}
+                    className={`relative shrink-0 size-20 rounded-md overflow-hidden bg-muted border-2 transition-colors ${
+                      heroImage === url
+                        ? "border-primary"
+                        : "border-transparent hover:border-muted-foreground/40"
+                    }`}
+                  >
+                    <Image
+                      src={url}
+                      alt={`Screenshot ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                  </button>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => removeScreenshot(url)}
+                      className="absolute -top-1.5 -right-1.5 rounded-full bg-destructive text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

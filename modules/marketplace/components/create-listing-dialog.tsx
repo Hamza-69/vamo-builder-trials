@@ -36,6 +36,10 @@ interface CreateListingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  /** When relisting, pass the screenshots from the old listing */
+  existingScreenshots?: string[];
+  /** Whether this is a relist (archive old listing + create new) */
+  isRelist?: boolean;
 }
 
 interface ProjectData {
@@ -52,6 +56,8 @@ export function CreateListingDialog({
   open,
   onOpenChange,
   onSuccess,
+  existingScreenshots,
+  isRelist = false,
 }: CreateListingDialogProps) {
   const supabase = createClient();
   const { csrfFetch } = useCsrf();
@@ -128,8 +134,8 @@ export function CreateListingDialog({
     };
 
     fetchData();
-    // Reset screenshots on open
-    setScreenshots([]);
+    // Pre-populate with existing screenshots on relist, otherwise reset
+    setScreenshots(existingScreenshots?.slice(0, 5) ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, projectId]);
 
@@ -180,7 +186,14 @@ export function CreateListingDialog({
         uploaded.push(publicUrl);
       }
 
-      setScreenshots((prev) => [...prev, ...uploaded]);
+      setScreenshots((prev) => {
+        const combined = [...prev, ...uploaded];
+        if (combined.length > 5) {
+          toast.error("Maximum 5 screenshots allowed");
+          return combined.slice(0, 5);
+        }
+        return combined;
+      });
 
       if (uploaded.length > 0) {
         toast.success(
@@ -249,9 +262,13 @@ export function CreateListingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle>Create Marketplace Listing</DialogTitle>
+          <DialogTitle>
+            {isRelist ? "Relist on Marketplace" : "Create Marketplace Listing"}
+          </DialogTitle>
           <DialogDescription>
-            Review and edit your listing before publishing to the marketplace.
+            {isRelist
+              ? "Your previous listing will be archived. Review the updated listing before publishing."
+              : "Review and edit your listing before publishing to the marketplace."}
           </DialogDescription>
         </DialogHeader>
 
@@ -291,6 +308,9 @@ export function CreateListingDialog({
               {/* Asking Price Range */}
               <div className="space-y-2">
                 <Label>Asking Price Range</Label>
+                <p className="text-xs text-muted-foreground">
+                  Pre-filled from your project valuation. Editing will update your project&apos;s valuation too.
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -393,7 +413,7 @@ export function CreateListingDialog({
               {/* Screenshots */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Screenshots</Label>
+                  <Label>Screenshots ({screenshots.length}/5)</Label>
                   {screenshots.length === 0 && (
                     <div className="flex items-center gap-1 text-amber-500">
                       <AlertCircle className="size-3.5" />
@@ -404,24 +424,50 @@ export function CreateListingDialog({
                   )}
                 </div>
 
-                {/* Upload area */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors p-6 flex flex-col items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {uploading ? (
-                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                  ) : (
-                    <ImagePlus className="size-6 text-muted-foreground" />
+                {/* Horizontal scrollable gallery */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {/* Add button */}
+                  {screenshots.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="shrink-0 size-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {uploading ? (
+                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      ) : (
+                        <ImagePlus className="size-5 text-muted-foreground" />
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {uploading ? "Uploading…" : "Add"}
+                      </span>
+                    </button>
                   )}
-                  <span className="text-sm text-muted-foreground">
-                    {uploading
-                      ? "Uploading…"
-                      : "Click to upload screenshots"}
-                  </span>
-                </button>
+
+                  {/* Screenshot thumbnails */}
+                  {screenshots.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group shrink-0 size-24 rounded-lg overflow-hidden bg-muted border"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Screenshot ${idx + 1}`}
+                        className="size-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeScreenshot(idx)}
+                        className="absolute top-1 right-1 rounded-full bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -430,32 +476,6 @@ export function CreateListingDialog({
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-
-                {/* Preview uploaded screenshots */}
-                {screenshots.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {screenshots.map((url, idx) => (
-                      <div
-                        key={idx}
-                        className="relative group rounded-md overflow-hidden aspect-video bg-muted"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={url}
-                          alt={`Screenshot ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeScreenshot(idx)}
-                          className="absolute top-1 right-1 rounded-full bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -470,7 +490,7 @@ export function CreateListingDialog({
             disabled={publishing || loading || !title.trim()}
           >
             {publishing && <Loader2 className="size-4 animate-spin mr-2" />}
-            Publish Listing
+            {isRelist ? "Relist" : "Publish Listing"}
           </Button>
         </DialogFooter>
       </DialogContent>

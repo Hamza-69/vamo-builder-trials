@@ -118,12 +118,13 @@ export async function GET(request: NextRequest) {
         return { ...listing, is_outdated: false };
       }
 
-      // Check if any newer events exist
+      // Check if any newer events exist (exclude listing events)
       const { count: newerCount } = await supabase
         .from("activity_events")
         .select("id", { count: "exact", head: true })
         .eq("project_id", listing.project_id)
-        .gt("created_at", snapshotEvent.created_at);
+        .gt("created_at", snapshotEvent.created_at)
+        .not("event_type", "in", "(listing_created,listing_relisted)");
 
       return { ...listing, is_outdated: (newerCount ?? 0) > 0 };
     }),

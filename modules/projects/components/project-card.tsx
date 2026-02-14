@@ -69,7 +69,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
               Progress: {project.progress_score}%
             </Badge>
           )}
-          {(project.valuation_low != null || project.valuation_high != null) && (
+          {(project.valuation_low != null && project.valuation_high != null && project.valuation_low.toLocaleString() != "0" && project.valuation_high.toLocaleString() != "0") && (
             <Badge variant="outline" className="text-xs">
               {project.valuation_low != null && project.valuation_high != null
                 ? `$${project.valuation_low.toLocaleString()} – $${project.valuation_high.toLocaleString()}`

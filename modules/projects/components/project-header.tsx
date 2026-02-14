@@ -10,6 +10,7 @@ import {
   PencilIcon,
   StoreIcon,
   SparklesIcon,
+  RefreshCwIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -76,6 +77,8 @@ export const ProjectHeader = ({
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState("")
   const [listDialogOpen, setListDialogOpen] = useState(false)
+  const [isOutdated, setIsOutdated] = useState(false)
+  const [oldScreenshots, setOldScreenshots] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   // ── fetch project + profile ─────────────────────────────────
@@ -103,6 +106,40 @@ export const ProjectHeader = ({
       if (projectRes.data) {
         setProject(projectRes.data)
         setEditName(projectRes.data.name)
+
+        // Check if project is listed but has new activity (outdated)
+        if (projectRes.data.status === "listed") {
+          const { data: activeListing } = await supabase
+            .from("listings")
+            .select("id, last_timeline_item_id, screenshots")
+            .eq("project_id", projectId)
+            .eq("status", "active")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single()
+
+          if (activeListing?.last_timeline_item_id) {
+            const { count } = await supabase
+              .from("activity_events")
+              .select("id", { count: "exact", head: true })
+              .eq("project_id", projectId)
+              .not("event_type", "in", "(listing_created,listing_relisted)")
+              .gt("created_at", 
+                // Get the created_at of the last timeline item
+                (await supabase
+                  .from("activity_events")
+                  .select("created_at")
+                  .eq("id", activeListing.last_timeline_item_id)
+                  .single()
+                ).data?.created_at ?? ""
+              )
+
+            setIsOutdated((count ?? 0) > 0)
+            setOldScreenshots(
+              (activeListing.screenshots as string[] | null) ?? []
+            )
+          }
+        }
       }
       if (profileRes.data) setProfile(profileRes.data)
     }
@@ -145,6 +182,7 @@ export const ProjectHeader = ({
   const progressScore = project?.progress_score ?? 0
   const pineappleBalance = profile?.pineapple_balance ?? 0
   const isAlreadyListed = project?.status === 'listed'
+  const canRelist = isAlreadyListed && isOutdated
 
   // ── render ──────────────────────────────────────────────────
   return (
@@ -257,12 +295,12 @@ export const ProjectHeader = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span tabIndex={progressScore < 10 ? 0 : undefined}>
+              <span tabIndex={progressScore < 10 || (isAlreadyListed && !canRelist) ? 0 : undefined}>
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  disabled={progressScore < 10}
+                  disabled={progressScore < 10 || (isAlreadyListed && !canRelist)}
                 >
                   <SparklesIcon className="size-3.5" />
                   <span className="hidden sm:inline">Get Vamo Offer</span>
@@ -274,23 +312,36 @@ export const ProjectHeader = ({
                 Reach a progress score of 10 to unlock
               </TooltipContent>
             )}
+            {isAlreadyListed && !canRelist && progressScore >= 10 && (
+              <TooltipContent side="bottom">
+                Project is already listed with no new activity
+              </TooltipContent>
+            )}
           </Tooltip>
         </TooltipProvider>
 
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span tabIndex={progressScore < 20 || isAlreadyListed ? 0 : undefined}>
+              <span tabIndex={progressScore < 20 || (isAlreadyListed && !canRelist) ? 0 : undefined}>
                 <Button
-                  variant="default"
+                  variant={canRelist ? "outline" : "default"}
                   size="sm"
                   className="gap-1.5"
-                  disabled={progressScore < 20 || isAlreadyListed}
+                  disabled={progressScore < 20 || (isAlreadyListed && !canRelist)}
                   onClick={() => setListDialogOpen(true)}
                 >
-                  <StoreIcon className="size-3.5" />
+                  {canRelist ? (
+                    <RefreshCwIcon className="size-3.5" />
+                  ) : (
+                    <StoreIcon className="size-3.5" />
+                  )}
                   <span className="hidden sm:inline">
-                    {isAlreadyListed ? "Listed" : "List for Sale"}
+                    {canRelist
+                      ? "Relist"
+                      : isAlreadyListed
+                        ? "Listed"
+                        : "List for Sale"}
                   </span>
                 </Button>
               </span>
@@ -300,9 +351,14 @@ export const ProjectHeader = ({
                 Reach a progress score of 20 to unlock
               </TooltipContent>
             )}
-            {isAlreadyListed && (
+            {isAlreadyListed && !canRelist && (
               <TooltipContent side="bottom">
                 This project is already listed on the marketplace
+              </TooltipContent>
+            )}
+            {canRelist && (
+              <TooltipContent side="bottom">
+                New activity detected — relist with updated data
               </TooltipContent>
             )}
           </Tooltip>
@@ -314,8 +370,11 @@ export const ProjectHeader = ({
         projectId={projectId}
         open={listDialogOpen}
         onOpenChange={setListDialogOpen}
+        isRelist={canRelist}
+        existingScreenshots={canRelist ? oldScreenshots : undefined}
         onSuccess={() => {
           setProject((prev) => prev ? { ...prev, status: 'listed' } : prev)
+          setIsOutdated(false)
         }}
       />
     </header>

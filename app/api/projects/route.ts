@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { verifyCsrfToken } from "@/lib/csrf";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -79,4 +80,118 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ projects });
+}
+
+export async function POST(request: NextRequest) {
+  const csrfValid = await verifyCsrfToken(request);
+  if (!csrfValid) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
+
+  const supabase = createClient();
+
+  // Authenticate
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Parse body
+  let body: {
+    name?: string;
+    description?: string;
+    url?: string;
+    why_built?: string;
+    screenshot_url?: string;
+  };
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  // Validate name
+  const name = body.name?.trim();
+  if (!name || name.length === 0) {
+    return NextResponse.json(
+      { error: "Project name is required" },
+      { status: 400 }
+    );
+  }
+  if (name.length > 100) {
+    return NextResponse.json(
+      { error: "Project name must be 100 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
+  // Validate description
+  if (body.description && body.description.length > 500) {
+    return NextResponse.json(
+      { error: "Description must be 500 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
+  // Validate URL
+  if (body.url) {
+    const trimmedUrl = body.url.trim();
+    if (trimmedUrl && !trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://")) {
+      return NextResponse.json(
+        { error: "URL must start with http:// or https://" },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Validate why_built
+  if (body.why_built && body.why_built.length > 1000) {
+    return NextResponse.json(
+      { error: "Why you built this must be 1000 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
+  // Insert project
+  const { data: project, error: insertError } = await supabase
+    .from("projects")
+    .insert({
+      owner_id: user.id,
+      name,
+      description: body.description?.trim() || null,
+      url: body.url?.trim() || null,
+      why_built: body.why_built?.trim() || null,
+      screenshot_url: body.screenshot_url?.trim() || null,
+    })
+    .select()
+    .single();
+
+  if (insertError || !project) {
+    return NextResponse.json(
+      { error: insertError?.message ?? "Failed to create project" },
+      { status: 500 }
+    );
+  }
+
+  // Insert activity event
+  const { error: eventError } = await supabase
+    .from("activity_events")
+    .insert({
+      project_id: project.id,
+      user_id: user.id,
+      event_type: "project_created",
+      description: `Created project "${name}"`,
+    });
+
+  if (eventError) {
+    console.error("Failed to insert activity event:", eventError.message);
+    // Non-blocking — project was already created
+  }
+
+  return NextResponse.json({ project }, { status: 201 });
 }

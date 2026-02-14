@@ -41,11 +41,18 @@ export default async function ListingPage({
         .from("activity_events")
         .select("id", { count: "exact", head: true })
         .eq("project_id", listing.project_id)
-        .gt("created_at", snapshotEvent.created_at);
+        .gt("created_at", snapshotEvent.created_at)
+        .not("event_type", "in", "(listing_created,listing_relisted)");
 
       is_outdated = (count ?? 0) > 0;
     }
   }
 
-  return <ListingDetailView listing={{ ...listing, is_outdated } as unknown as ListingDetail} />;
+  // Check if current user owns this listing
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isOwner = user?.id === listing.user_id;
+
+  return <ListingDetailView listing={{ ...listing, is_outdated } as unknown as ListingDetail} isOwner={isOwner} />;
 }
