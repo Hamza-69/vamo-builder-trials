@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCsrf } from "@/hooks/use-csrf";
 
 export type SortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
@@ -42,11 +42,25 @@ interface WalletData {
 
 export function useWallet() {
   const { csrfFetch } = useCsrf();
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Read initial state from URL search params
+  // Initialise local filter state from URL (read once)
+  const [tab, setTabState] = useState<"rewards" | "redemptions">(
+    () => (searchParams.get("tab") as "rewards" | "redemptions") || "rewards"
+  );
+  const [page, setPageState] = useState(() =>
+    Math.max(1, Number(searchParams.get("page") || 1))
+  );
+  const [sortBy, setSortByState] = useState<SortBy>(
+    () => (searchParams.get("sortBy") as SortBy) || "date_desc"
+  );
+  const [minAmount, setMinAmountState] = useState(
+    () => searchParams.get("minAmount") || ""
+  );
+  const [maxAmount, setMaxAmountState] = useState(
+    () => searchParams.get("maxAmount") || ""
+  );
+
   const [profile, setProfile] = useState<WalletProfile | null>(null);
   const [tableData, setTableData] = useState<{
     rewards?: RewardEntry[];
@@ -57,20 +71,13 @@ export function useWallet() {
   const [tableLoading, setTableLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Derive filter state from URL
-  const tab = (searchParams.get("tab") as "rewards" | "redemptions") || "rewards";
-  const page = Math.max(1, Number(searchParams.get("page") || 1));
-  const sortBy = (searchParams.get("sortBy") as SortBy) || "date_desc";
-  const minAmount = searchParams.get("minAmount") || "";
-  const maxAmount = searchParams.get("maxAmount") || "";
-
   const perPage = 20;
 
-  // Helper to update URL search params without full page reload
-  const updateParams = useCallback(
-    (updates: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(updates)) {
+  // Sync filter state to URL without triggering Next.js navigation
+  const syncUrl = useCallback(
+    (overrides: Record<string, string | null>) => {
+      const params = new URLSearchParams(window.location.search);
+      for (const [key, value] of Object.entries(overrides)) {
         if (value === null || value === "") {
           params.delete(key);
         } else {
@@ -78,31 +85,51 @@ export function useWallet() {
         }
       }
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+      window.history.replaceState(window.history.state, "", newUrl);
     },
-    [searchParams, pathname, router]
+    []
   );
 
-  // Setters that push to URL
+  // Setters that update local state + URL (no page reload)
   const setTab = useCallback(
-    (t: "rewards" | "redemptions") => updateParams({ tab: t, page: null }),
-    [updateParams]
+    (t: "rewards" | "redemptions") => {
+      setTabState(t);
+      setPageState(1);
+      syncUrl({ tab: t, page: null });
+    },
+    [syncUrl]
   );
   const setPage = useCallback(
-    (p: number) => updateParams({ page: p === 1 ? null : String(p) }),
-    [updateParams]
+    (p: number) => {
+      setPageState(p);
+      syncUrl({ page: p === 1 ? null : String(p) });
+    },
+    [syncUrl]
   );
   const setSortBy = useCallback(
-    (s: SortBy) => updateParams({ sortBy: s === "date_desc" ? null : s, page: null }),
-    [updateParams]
+    (s: SortBy) => {
+      setSortByState(s);
+      setPageState(1);
+      syncUrl({ sortBy: s === "date_desc" ? null : s, page: null });
+    },
+    [syncUrl]
   );
   const setMinAmount = useCallback(
-    (v: string) => updateParams({ minAmount: v || null, page: null }),
-    [updateParams]
+    (v: string) => {
+      setMinAmountState(v);
+      setPageState(1);
+      syncUrl({ minAmount: v || null, page: null });
+    },
+    [syncUrl]
   );
   const setMaxAmount = useCallback(
-    (v: string) => updateParams({ maxAmount: v || null, page: null }),
-    [updateParams]
+    (v: string) => {
+      setMaxAmountState(v);
+      setPageState(1);
+      syncUrl({ maxAmount: v || null, page: null });
+    },
+    [syncUrl]
   );
 
   // Fetch profile once on mount
@@ -169,11 +196,11 @@ export function useWallet() {
   }, [fetchTable]);
 
   const redeem = useCallback(
-    async (amount: number, rewardType: string = "uber_eats") => {
+    async (amount: number, rewardType: string = "uber_eats", projectId?: string) => {
       const res = await csrfFetch("/api/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, rewardType }),
+        body: JSON.stringify({ amount, rewardType, projectId: projectId || undefined }),
       });
 
       const json = await res.json();

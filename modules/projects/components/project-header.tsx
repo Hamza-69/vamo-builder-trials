@@ -123,7 +123,7 @@ export const ProjectHeader = ({
               .from("activity_events")
               .select("id", { count: "exact", head: true })
               .eq("project_id", projectId)
-              .not("event_type", "in", "(listing_created,listing_relisted)")
+              .not("event_type", "in", "(listing_created,listing_relisted,reward_earned,reward_redeemed)")
               .gt("created_at", 
                 // Get the created_at of the last timeline item
                 (await supabase

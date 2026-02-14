@@ -33,8 +33,8 @@ function WalletContent() {
 
   const balance = profile?.pineapple_balance ?? 0;
 
-  const handleRedeem = async (amount: number, rewardType: string) => {
-    const result = await redeem(amount, rewardType);
+  const handleRedeem = async (amount: number, rewardType: string, projectId?: string) => {
+    const result = await redeem(amount, rewardType, projectId);
     toast.success(result.message);
   };
 

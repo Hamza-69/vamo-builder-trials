@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,11 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface Project {
+  id: string;
+  name: string;
+}
+
 interface RedeemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   balance: number;
-  onConfirm: (amount: number, rewardType: string) => Promise<void>;
+  onConfirm: (amount: number, rewardType: string, projectId?: string) => Promise<void>;
 }
 
 const MIN_REDEEM = 50;
@@ -36,8 +41,36 @@ export function RedeemDialog({
 }: RedeemDialogProps) {
   const [amount, setAmount] = useState<string>("");
   const [rewardType, setRewardType] = useState("uber_eats");
+  const [projectId, setProjectId] = useState<string>("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch user's projects when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setProjectsLoading(true);
+    fetch("/api/projects")
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return;
+        const list: Project[] = (json.projects ?? []).map((p: { id: string; name: string }) => ({
+          id: p.id,
+          name: p.name,
+        }));
+        setProjects(list);
+        if (list.length > 0 && !projectId) {
+          setProjectId(list[0].id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setProjectsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [open]);
 
   const numAmount = Number(amount);
   const isValid =
@@ -51,7 +84,7 @@ export function RedeemDialog({
     setSubmitting(true);
     setError(null);
     try {
-      await onConfirm(numAmount, rewardType);
+      await onConfirm(numAmount, rewardType, projectId || undefined);
       setAmount("");
       onOpenChange(false);
     } catch (err) {
@@ -127,6 +160,32 @@ export function RedeemDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Project selector */}
+          {projects.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Project</label>
+              <Select
+                value={projectId}
+                onValueChange={setProjectId}
+                disabled={projectsLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={projectsLoading ? "Loading…" : "Select a project"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                The redemption will be logged under this project.
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-destructive font-medium">{error}</p>

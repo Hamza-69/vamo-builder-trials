@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
         .select("id", { count: "exact", head: true })
         .eq("project_id", listing.project_id)
         .gt("created_at", snapshotEvent.created_at)
-        .not("event_type", "in", "(listing_created,listing_relisted)");
+        .not("event_type", "in", "(listing_created,listing_relisted,reward_earned,reward_redeemed)");
 
       return { ...listing, is_outdated: (newerCount ?? 0) > 0 };
     }),

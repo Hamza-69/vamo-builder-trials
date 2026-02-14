@@ -43,7 +43,7 @@ export async function GET(
         .select("id", { count: "exact", head: true })
         .eq("project_id", listing.project_id)
         .gt("created_at", snapshotEvent.created_at)
-        .not("event_type", "in", "(listing_created,listing_relisted)");
+        .not("event_type", "in", "(listing_created,listing_relisted,reward_earned,reward_redeemed)");
 
       is_outdated = (count ?? 0) > 0;
     }
