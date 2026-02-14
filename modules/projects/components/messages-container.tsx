@@ -1,8 +1,7 @@
 import { MessageCard } from "./message-card"
 import { MessageForm } from "./message-form"
 import { useCallback, useEffect, useRef } from "react"
-import { MessageLoading } from "./message-loading"
-import { Loader2Icon } from "lucide-react"
+import { MessageLoading, MessagesSkeleton, LoadMoreSkeleton } from "./message-loading"
 import { toast } from "sonner"
 import { useChat, type ChatResponse } from "../hooks/use-chat"
 
@@ -101,8 +100,28 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
     [sendMessage, error, onBusinessUpdate],
   )
 
+  const isInitialLoad = isLoading && messages.length === 0
+
   const lastMessage = messages[messages.length - 1]
   const lastMessageIsUser = lastMessage?.role === "user"
+
+  if (isInitialLoad) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <MessagesSkeleton />
+        </div>
+        <div className="relative p-3 pt-1">
+          <div className="absolute -top-6 left-0 right-0 h-6 bg-linear-to-b from-transparent to-background pointer-events-none" />
+          <MessageForm
+            projectId={projectId}
+            isSending={isSending}
+            onSend={handleSend}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -110,11 +129,7 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
         <div className="pt-2 pr-1">
           {/* Sentinel for infinite scroll up */}
           <div ref={sentinelRef} className="h-1" />
-          {isLoading && hasMore && (
-            <div className="flex justify-center py-2">
-              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
+          {isLoading && hasMore && <LoadMoreSkeleton />}
 
           {messages.map((m) => (
             <MessageCard

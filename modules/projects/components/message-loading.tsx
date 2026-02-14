@@ -51,12 +51,74 @@ export const MessageLoading = () => {
 }
 
 export const MessagesSkeleton = () => (
-  <div className="flex flex-col gap-4 px-2 pb-4">
-    {[1,2,3].map((i) => (
-      <div key={i} className="flex items-center gap-2 pl-2 mb-2">
-        <Skeleton className="h-5 w-5 rounded-full" />
-        <Skeleton className="h-4 w-24" />
+  <div className="flex flex-col gap-4 p-4">
+    {/* Simulated assistant message */}
+    <div className="flex flex-col px-2 pb-4">
+      <div className="flex items-center gap-2 pl-2 mb-2">
+        <Skeleton className="size-4 rounded-full" />
+        <Skeleton className="h-3.5 w-14" />
       </div>
-    ))}
+      <div className="pl-8.5 flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-[75%]" />
+        <Skeleton className="h-4 w-[55%]" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+    </div>
+
+    {/* Simulated user message */}
+    <div className="flex flex-col items-end pr-2 pl-10 pb-4">
+      <Skeleton className="h-16 w-[65%] rounded-lg" />
+      <Skeleton className="h-3 w-12 mt-1 mr-1" />
+    </div>
+
+    {/* Simulated assistant message */}
+    <div className="flex flex-col px-2 pb-4">
+      <div className="flex items-center gap-2 pl-2 mb-2">
+        <Skeleton className="size-4 rounded-full" />
+        <Skeleton className="h-3.5 w-14" />
+      </div>
+      <div className="pl-8.5 flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-[80%]" />
+        <Skeleton className="h-4 w-[40%]" />
+      </div>
+    </div>
+
+    {/* Simulated user message */}
+    <div className="flex flex-col items-end pr-2 pl-10 pb-4">
+      <Skeleton className="h-10 w-[50%] rounded-lg" />
+      <Skeleton className="h-3 w-12 mt-1 mr-1" />
+    </div>
+
+    {/* Simulated assistant message */}
+    <div className="flex flex-col px-2 pb-4">
+      <div className="flex items-center gap-2 pl-2 mb-2">
+        <Skeleton className="size-4 rounded-full" />
+        <Skeleton className="h-3.5 w-14" />
+      </div>
+      <div className="pl-8.5 flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-[60%]" />
+        <Skeleton className="h-4 w-[70%]" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+    </div>
+  </div>
+)
+
+export const LoadMoreSkeleton = () => (
+  <div className="flex flex-col gap-3 px-2 py-2">
+    {/* Two compact skeleton messages at the top */}
+    <div className="flex flex-col items-end pr-2 pl-10">
+      <Skeleton className="h-10 w-[50%] rounded-lg" />
+    </div>
+    <div className="flex flex-col px-2">
+      <div className="flex items-center gap-2 pl-2 mb-1">
+        <Skeleton className="size-4 rounded-full" />
+        <Skeleton className="h-3 w-12" />
+      </div>
+      <div className="pl-8.5 flex flex-col gap-y-1.5">
+        <Skeleton className="h-3.5 w-[70%]" />
+        <Skeleton className="h-3.5 w-[45%]" />
+      </div>
+    </div>
   </div>
 )
