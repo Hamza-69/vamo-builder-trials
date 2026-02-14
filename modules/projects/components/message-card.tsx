@@ -52,9 +52,9 @@ const UserMessage = ({ content, createdAt, tag }: UserMessageProps) => {
       <Card className="rounded-lg bg-muted shadow-none p-3 border-none max-w-[80%] wrap-break-word">
         {content}
       </Card>
-      <div className="flex items-center gap-1.5 mr-1">
+      <div className="flex flex-col items-end">
         {validTag && (
-          <Badge variant={TAG_STYLES[validTag].variant} className="text-[10px] h-4 px-1.5">
+          <Badge variant={TAG_STYLES[validTag].variant} className="text-[10px] h-4">
             {TAG_STYLES[validTag].label}
           </Badge>
         )}

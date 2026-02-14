@@ -62,9 +62,16 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
           isLoadingMoreRef.current = true
           const prevHeight = container.scrollHeight
           loadMore().then(() => {
+            // Double rAF to ensure DOM has flushed before restoring scroll
             requestAnimationFrame(() => {
-              container.scrollTop = container.scrollHeight - prevHeight
-              isLoadingMoreRef.current = false
+              requestAnimationFrame(() => {
+                container.scrollTop = container.scrollHeight - prevHeight
+                // Delay clearing the flag so the scroll-to-bottom effect
+                // (which fires on messages.length change) doesn't interfere
+                setTimeout(() => {
+                  isLoadingMoreRef.current = false
+                }, 50)
+              })
             })
           })
         }

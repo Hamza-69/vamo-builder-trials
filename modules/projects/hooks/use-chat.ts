@@ -30,7 +30,7 @@ export interface MessagesPage {
   hasMore: boolean;
 }
 
-const MESSAGES_PER_PAGE = 20;
+const MESSAGES_PER_PAGE = 5;
 
 export function useChat(projectId: string) {
   const { csrfFetch } = useCsrf();
