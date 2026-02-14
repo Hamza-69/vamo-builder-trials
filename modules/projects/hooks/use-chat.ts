@@ -25,12 +25,8 @@ export interface ChatResponse {
 export interface MessagesPage {
   messages: Message[];
   total: number;
-  page: number;
-  perPage: number;
   hasMore: boolean;
 }
-
-const MESSAGES_PER_PAGE = 5;
 
 export function useChat(projectId: string) {
   const { csrfFetch } = useCsrf();
@@ -40,18 +36,16 @@ export function useChat(projectId: string) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
-  const pageRef = useRef(1);
-  const isInitialLoad = useRef(true);
 
   /**
-   * Load the most recent page of messages (page 1 = newest).
+   * Load the most recent messages (no cursor = newest).
    */
   const loadMessages = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `/api/chat/messages?projectId=${projectId}&page=1`,
+        `/api/chat/messages?projectId=${projectId}`,
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -61,8 +55,6 @@ export function useChat(projectId: string) {
       setMessages(data.messages);
       setTotal(data.total);
       setHasMore(data.hasMore);
-      pageRef.current = 1;
-      isInitialLoad.current = false;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -71,32 +63,40 @@ export function useChat(projectId: string) {
   }, [projectId]);
 
   /**
-   * Load older messages (prepend to top).
+   * Load older messages (prepend to top) using cursor-based pagination.
    */
   const loadMore = useCallback(async () => {
     if (!hasMore || isLoading) return;
+
+    // Use the oldest message's created_at as the cursor
+    const oldest = messages[0];
+    if (!oldest?.created_at) return;
+
     setIsLoading(true);
     try {
-      const nextPage = pageRef.current + 1;
       const res = await fetch(
-        `/api/chat/messages?projectId=${projectId}&page=${nextPage}`,
+        `/api/chat/messages?projectId=${projectId}&before=${encodeURIComponent(oldest.created_at)}`,
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Failed to load messages");
       }
       const data: MessagesPage = await res.json();
-      // Prepend older messages
-      setMessages((prev) => [...data.messages, ...prev]);
+
+      // Deduplicate by id before prepending
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const newMsgs = data.messages.filter((m) => !existingIds.has(m.id));
+        return [...newMsgs, ...prev];
+      });
       setHasMore(data.hasMore);
       setTotal(data.total);
-      pageRef.current = nextPage;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, hasMore, isLoading]);
+  }, [projectId, hasMore, isLoading, messages]);
 
   /**
    * Send a message and get the AI response.

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-const MESSAGES_PER_PAGE = 20;
+const MESSAGES_PER_PAGE = 10;
 
 /**
- * GET /api/chat/messages?projectId=uuid&page=1
- * Returns paginated messages (newest first), with total count.
+ * GET /api/chat/messages?projectId=uuid[&before=ISO8601]
+ * Cursor-based pagination: returns the N newest messages, or the N messages
+ * older than `before` if the cursor is provided.
+ * Returns messages in chronological (oldest-first) order.
  */
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId");
-  const page = Math.max(1, Number(searchParams.get("page") || 1));
+  const before = searchParams.get("before"); // ISO-8601 cursor
 
   if (!projectId) {
     return NextResponse.json({ error: "projectId is required" }, { status: 400 });
@@ -39,25 +41,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const from = (page - 1) * MESSAGES_PER_PAGE;
-  const to = from + MESSAGES_PER_PAGE - 1;
-
-  const { data: messages, count, error } = await supabase
+  let query = supabase
     .from("messages")
     .select("*", { count: "exact" })
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
-    .range(from, to);
+    .limit(MESSAGES_PER_PAGE);
+
+  if (before) {
+    query = query.lt("created_at", before);
+  }
+
+  const { data: messages, count, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const reversed = (messages ?? []).reverse(); // chronological order
+
   return NextResponse.json({
-    messages: (messages ?? []).reverse(), // Return in chronological order
+    messages: reversed,
     total: count ?? 0,
-    page,
-    perPage: MESSAGES_PER_PAGE,
-    hasMore: (count ?? 0) > page * MESSAGES_PER_PAGE,
+    hasMore: (count ?? 0) > MESSAGES_PER_PAGE,
   });
 }
