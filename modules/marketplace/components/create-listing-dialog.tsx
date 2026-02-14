@@ -146,9 +146,21 @@ export function CreateListingDialog({
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
       const uploaded: string[] = [];
 
       for (const file of Array.from(files)) {
+        if (!allowedTypes.includes(file.type)) {
+          toast.error(`${file.name}: Invalid type. Use JPEG, PNG, WebP, or GIF.`);
+          continue;
+        }
+        if (file.size > maxSize) {
+          toast.error(`${file.name}: Too large. Max 5MB.`);
+          continue;
+        }
+
         const ext = file.name.split(".").pop();
         const path = `${user.id}/${projectId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 

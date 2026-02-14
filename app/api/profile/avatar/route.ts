@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate file size (2MB max)
-  if (file.size > 2 * 1024 * 1024) {
+  // Validate file size (5MB max)
+  if (file.size > 5 * 1024 * 1024) {
     return NextResponse.json(
-      { error: "File too large. Max 2MB." },
+      { error: "File too large. Max 5MB." },
       { status: 400 }
     );
   }
