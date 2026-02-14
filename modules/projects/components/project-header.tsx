@@ -32,11 +32,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MessageSquare } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
+import { CreateListingDialog } from "@/modules/marketplace/components/create-listing-dialog"
 
 interface ProjectData {
   id: string
   name: string
   progress_score: number | null
+  status: string | null
 }
 
 interface ProfileData {
@@ -73,6 +75,7 @@ export const ProjectHeader = ({
   // ── inline‑edit state ───────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState("")
+  const [listDialogOpen, setListDialogOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // ── fetch project + profile ─────────────────────────────────
@@ -87,7 +90,7 @@ export const ProjectHeader = ({
       const [projectRes, profileRes] = await Promise.all([
         supabase
           .from("projects")
-          .select("id, name, progress_score")
+          .select("id, name, progress_score, status")
           .eq("id", projectId)
           .single(),
         supabase
@@ -141,6 +144,7 @@ export const ProjectHeader = ({
 
   const progressScore = project?.progress_score ?? 0
   const pineappleBalance = profile?.pineapple_balance ?? 0
+  const isAlreadyListed = project?.status === 'listed'
 
   // ── render ──────────────────────────────────────────────────
   return (
@@ -276,15 +280,18 @@ export const ProjectHeader = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span tabIndex={progressScore < 20 ? 0 : undefined}>
+              <span tabIndex={progressScore < 20 || isAlreadyListed ? 0 : undefined}>
                 <Button
                   variant="default"
                   size="sm"
                   className="gap-1.5"
-                  disabled={progressScore < 20}
+                  disabled={progressScore < 20 || isAlreadyListed}
+                  onClick={() => setListDialogOpen(true)}
                 >
                   <StoreIcon className="size-3.5" />
-                  <span className="hidden sm:inline">List for Sale</span>
+                  <span className="hidden sm:inline">
+                    {isAlreadyListed ? "Listed" : "List for Sale"}
+                  </span>
                 </Button>
               </span>
             </TooltipTrigger>
@@ -293,9 +300,24 @@ export const ProjectHeader = ({
                 Reach a progress score of 20 to unlock
               </TooltipContent>
             )}
+            {isAlreadyListed && (
+              <TooltipContent side="bottom">
+                This project is already listed on the marketplace
+              </TooltipContent>
+            )}
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {/* Listing creation dialog */}
+      <CreateListingDialog
+        projectId={projectId}
+        open={listDialogOpen}
+        onOpenChange={setListDialogOpen}
+        onSuccess={() => {
+          setProject((prev) => prev ? { ...prev, status: 'listed' } : prev)
+        }}
+      />
     </header>
   )
 }
