@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { verifyCsrfToken } from "@/lib/csrf";
 
 /**
  * POST /api/listings
@@ -10,6 +11,15 @@ import { createClient } from "@/utils/supabase/server";
  * - Logs analytics event
  */
 export async function POST(request: NextRequest) {
+  // --- CSRF verification ---
+  const csrfValid = await verifyCsrfToken(request);
+  if (!csrfValid) {
+    return NextResponse.json(
+      { error: "Invalid CSRF token" },
+      { status: 403 }
+    );
+  }
+
   const supabase = createClient();
 
   // Authenticate

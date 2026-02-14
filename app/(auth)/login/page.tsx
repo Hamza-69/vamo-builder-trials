@@ -7,10 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signIn } from "../actions";
-import { useCsrf } from "@/hooks/use-csrf";
 
 export default function LoginPage() {
-  const { csrfFetch } = useCsrf();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

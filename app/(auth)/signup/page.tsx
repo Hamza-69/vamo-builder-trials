@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signUp } from "../actions";
-import { useCsrf } from "@/hooks/use-csrf";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 const PASSWORD_RULES = [
@@ -19,7 +18,6 @@ const PASSWORD_RULES = [
 ];
 
 export default function SignupPage() {
-  const { csrfFetch } = useCsrf();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
