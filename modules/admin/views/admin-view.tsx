@@ -45,6 +45,7 @@ export function AdminView() {
   );
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [projectsPage, setProjectsPage] = useState(1);
 
   const handleUserClick = useCallback((userId: string) => {
     setSelectedUserId(userId);
@@ -110,8 +111,11 @@ export function AdminView() {
         <TabsContent value="projects" className="pt-6">
           <ProjectsTable
             projects={admin.projects}
+            total={admin.projectsTotal}
+            page={projectsPage}
             loading={admin.projectsLoading}
             onFetch={admin.fetchProjects}
+            onPageChange={setProjectsPage}
           />
         </TabsContent>
       </Tabs>

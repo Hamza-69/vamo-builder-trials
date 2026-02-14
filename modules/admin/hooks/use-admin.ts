@@ -39,6 +39,7 @@ export function useAdmin() {
 
   // Projects
   const [projects, setProjects] = useState<AdminProject[]>([]);
+  const [projectsTotal, setProjectsTotal] = useState(0);
   const [projectsLoading, setProjectsLoading] = useState(false);
 
   // Error
@@ -172,6 +173,8 @@ export function useAdmin() {
       search?: string;
       status?: string;
       sortBy?: string;
+      page?: number;
+      perPage?: number;
     }) => {
       setProjectsLoading(true);
       setError(null);
@@ -180,12 +183,15 @@ export function useAdmin() {
         if (filters?.search) params.set("search", filters.search);
         if (filters?.status) params.set("status", filters.status);
         if (filters?.sortBy) params.set("sortBy", filters.sortBy);
+        if (filters?.page) params.set("page", String(filters.page));
+        if (filters?.perPage) params.set("perPage", String(filters.perPage));
         const res = await fetch(
           `/api/admin/projects?${params.toString()}`
         );
         if (!res.ok) throw new Error("Failed to fetch projects");
         const data = await res.json();
         setProjects(data.projects);
+        setProjectsTotal(data.total ?? 0);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -214,6 +220,7 @@ export function useAdmin() {
     analyticsLoading,
     fetchAnalytics,
     projects,
+    projectsTotal,
     projectsLoading,
     fetchProjects,
     error,

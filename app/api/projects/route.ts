@@ -24,10 +24,12 @@ export async function GET(request: NextRequest) {
   const valuationMax = searchParams.get("valuationMax");
   const progressMin = searchParams.get("progressMin");
   const progressMax = searchParams.get("progressMax");
+  const page = Math.max(1, Number(searchParams.get("page") || 1));
+  const perPage = Math.min(50, Math.max(1, Number(searchParams.get("perPage") || 12)));
 
   let query = supabase
     .from("projects")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("owner_id", user.id);
 
   // Search by name or description
@@ -74,13 +76,17 @@ export async function GET(request: NextRequest) {
       break;
   }
 
-  const { data: projects, error } = await query;
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+  query = query.range(from, to);
+
+  const { data: projects, count, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ projects });
+  return NextResponse.json({ projects, total: count ?? 0, page, perPage });
 }
 
 export async function POST(request: NextRequest) {

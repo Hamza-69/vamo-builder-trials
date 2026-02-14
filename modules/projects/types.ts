@@ -18,6 +18,7 @@ export interface ProjectFilters {
   valuationMax: string;
   progressMin: string;
   progressMax: string;
+  page: number;
 }
 
 export const DEFAULT_FILTERS: ProjectFilters = {
@@ -27,7 +28,10 @@ export const DEFAULT_FILTERS: ProjectFilters = {
   valuationMax: "",
   progressMin: "",
   progressMax: "",
+  page: 1,
 };
+
+export const PROJECTS_PER_PAGE = 12;
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest first" },
@@ -52,17 +56,19 @@ export function filtersFromParams(
     valuationMax: params.get("valuationMax") ?? "",
     progressMin: params.get("progressMin") ?? "",
     progressMax: params.get("progressMax") ?? "",
+    page: Math.max(1, Number(params.get("page") || 1)),
   };
 }
 
 /** Serialize filters to a URLSearchParams string (skips empty values). */
 export function filtersToParams(filters: ProjectFilters): string {
   const params = new URLSearchParams();
-  const entries = Object.entries(filters) as [keyof ProjectFilters, string][];
-  for (const [key, value] of entries) {
-    if (value && value !== DEFAULT_FILTERS[key]) {
-      params.set(key, value);
-    }
-  }
+  if (filters.search) params.set("search", filters.search);
+  if (filters.sortBy !== "newest") params.set("sortBy", filters.sortBy);
+  if (filters.valuationMin) params.set("valuationMin", filters.valuationMin);
+  if (filters.valuationMax) params.set("valuationMax", filters.valuationMax);
+  if (filters.progressMin) params.set("progressMin", filters.progressMin);
+  if (filters.progressMax) params.set("progressMax", filters.progressMax);
+  if (filters.page > 1) params.set("page", String(filters.page));
   return params.toString();
 }

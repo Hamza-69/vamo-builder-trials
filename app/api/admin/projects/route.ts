@@ -25,10 +25,12 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get("search") || "";
   const status = searchParams.get("status") || "";
   const sortBy = searchParams.get("sortBy") || "newest";
+  const page = Math.max(1, Number(searchParams.get("page") || 1));
+  const perPage = Math.min(50, Math.max(1, Number(searchParams.get("perPage") || 20)));
 
   let query = supabase
     .from("projects")
-    .select("*, profiles!inner(email, full_name)");
+    .select("*, profiles!inner(email, full_name)", { count: "exact" });
 
   if (search) {
     query = query.or(
@@ -61,10 +63,14 @@ export async function GET(request: NextRequest) {
       break;
   }
 
-  const { data: projects, error } = await query;
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+  query = query.range(from, to);
+
+  const { data: projects, count, error } = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ projects: projects ?? [] });
+  return NextResponse.json({ projects: projects ?? [], total: count ?? 0, page, perPage });
 }

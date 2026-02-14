@@ -18,18 +18,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import type { AdminProject } from "../types";
 
+const ADMIN_PROJECTS_PER_PAGE = 20;
+
 interface ProjectsTableProps {
   projects: AdminProject[];
+  total: number;
+  page: number;
   loading: boolean;
   onFetch: (filters?: {
     search?: string;
     status?: string;
     sortBy?: string;
+    page?: number;
+    perPage?: number;
   }) => void;
+  onPageChange?: (page: number) => void;
 }
 
 const statusOptions = [
@@ -49,28 +57,36 @@ const sortOptions = [
 
 export function ProjectsTable({
   projects,
+  total,
+  page,
   loading,
   onFetch,
+  onPageChange,
 }: ProjectsTableProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const debouncedSearch = useDebouncedValue(search, 300);
 
+  const totalPages = Math.ceil(total / ADMIN_PROJECTS_PER_PAGE);
+
   useEffect(() => {
     onFetch({
       search: debouncedSearch || undefined,
       status: status === "all" ? undefined : status,
       sortBy,
+      page,
+      perPage: ADMIN_PROJECTS_PER_PAGE,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, status, sortBy]);
+  }, [debouncedSearch, status, sortBy, page]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearch(e.target.value);
+      onPageChange?.(1);
     },
-    []
+    [onPageChange]
   );
 
   const statusBadgeVariant = (s: string | null) => {
@@ -97,7 +113,7 @@ export function ProjectsTable({
           onChange={handleSearchChange}
           className="max-w-xs"
         />
-        <Select value={status} onValueChange={setStatus}>
+        <Select value={status} onValueChange={(v) => { setStatus(v); onPageChange?.(1); }}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
@@ -109,7 +125,7 @@ export function ProjectsTable({
             ))}
           </SelectContent>
         </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
+        <Select value={sortBy} onValueChange={(v) => { setSortBy(v); onPageChange?.(1); }}>
           <SelectTrigger className="w-[160px]">
             <SelectValue />
           </SelectTrigger>
@@ -185,6 +201,63 @@ export function ProjectsTable({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => onPageChange?.(page - 1)}
+          >
+            Previous
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => {
+                if (p === 1 || p === totalPages) return true;
+                if (Math.abs(p - page) <= 1) return true;
+                return false;
+              })
+              .reduce<(number | "ellipsis")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                  acc.push("ellipsis");
+                }
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "ellipsis" ? (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="px-2 text-muted-foreground"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={item}
+                    variant={item === page ? "default" : "outline"}
+                    size="sm"
+                    className="min-w-[36px]"
+                    onClick={() => onPageChange?.(item)}
+                  >
+                    {item}
+                  </Button>
+                ),
+              )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange?.(page + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

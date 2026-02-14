@@ -66,6 +66,7 @@ export function ProjectsToolbar({
         valuationMax: debouncedValMax,
         progressMin: debouncedProgMin,
         progressMax: debouncedProgMax,
+        page: 1,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +74,7 @@ export function ProjectsToolbar({
 
   const handleSortChange = useCallback(
     (value: string) => {
-      onFiltersChange({ ...filters, sortBy: value as SortOption });
+      onFiltersChange({ ...filters, sortBy: value as SortOption, page: 1 });
     },
     [filters, onFiltersChange],
   );
@@ -96,6 +97,7 @@ export function ProjectsToolbar({
       valuationMax: "",
       progressMin: "",
       progressMax: "",
+      page: 1,
     });
   }, [filters, onFiltersChange]);
 

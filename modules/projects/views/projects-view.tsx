@@ -19,7 +19,7 @@ export function ProjectsView({ userName }: ProjectsViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { projects, isLoading, error, fetchProjects } = useProjects();
+  const { projects, total, isLoading, error, fetchProjects } = useProjects();
 
   // Derive filters from URL search params (single source of truth)
   const filters = useMemo(
@@ -39,6 +39,13 @@ export function ProjectsView({ userName }: ProjectsViewProps) {
       router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
     },
     [router, pathname],
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      handleFiltersChange({ ...filters, page });
+    },
+    [filters, handleFiltersChange],
   );
 
   const handleCreateNew = useCallback(() => {
@@ -71,12 +78,15 @@ export function ProjectsView({ userName }: ProjectsViewProps) {
         onCreateNew={handleCreateNew}
       />
 
-      {/* Project card grid */}
+      {/* Project card grid with pagination */}
       <ProjectsGrid
         projects={projects}
+        total={total}
+        page={filters.page}
         isLoading={isLoading}
         error={error}
         onProjectClick={handleProjectClick}
+        onPageChange={handlePageChange}
       />
     </div>
   );

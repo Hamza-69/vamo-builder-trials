@@ -3,10 +3,12 @@
 import { useCallback, useState } from "react";
 import { useCsrf } from "@/hooks/use-csrf";
 import type { Project, ProjectFilters } from "../types";
+import { PROJECTS_PER_PAGE } from "../types";
 
 export function useProjects() {
   const { csrfFetch } = useCsrf();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +26,8 @@ export function useProjects() {
         if (filters.valuationMax) params.set("valuationMax", filters.valuationMax);
         if (filters.progressMin) params.set("progressMin", filters.progressMin);
         if (filters.progressMax) params.set("progressMax", filters.progressMax);
+        params.set("page", String(filters.page));
+        params.set("perPage", String(PROJECTS_PER_PAGE));
 
         const res = await csrfFetch(`/api/projects?${params.toString()}`);
 
@@ -32,8 +36,9 @@ export function useProjects() {
           throw new Error(body.error || "Failed to fetch projects");
         }
 
-        const { projects: data } = await res.json();
-        setProjects(data ?? []);
+        const data = await res.json();
+        setProjects(data.projects ?? []);
+        setTotal(data.total ?? 0);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -43,5 +48,5 @@ export function useProjects() {
     [csrfFetch],
   );
 
-  return { projects, isLoading, error, fetchProjects } as const;
+  return { projects, total, isLoading, error, fetchProjects } as const;
 }
