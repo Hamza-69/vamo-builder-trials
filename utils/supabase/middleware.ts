@@ -73,6 +73,7 @@ export const updateSession = async (request: NextRequest) => {
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/confirm-email") ||
+    path.startsWith("/auth/callback") ||
     path.startsWith("/marketplace");
 
   if (!user && !isPublicRoute) {

@@ -1,12 +1,33 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MailIcon } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
-interface Props {
-  searchParams: { email?: string };
-}
+export default function ConfirmEmailPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email");
 
-export default function ConfirmEmailPage({ searchParams }: Props) {
-  const email = searchParams.email;
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Listen for auth state changes — when the user confirms their email
+    // and the session becomes active, redirect to /projects.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        router.replace("/projects");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   return (
     <div className="flex flex-col items-center gap-6 text-center">
