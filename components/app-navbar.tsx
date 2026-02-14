@@ -30,7 +30,7 @@ export function AppNavbar() {
   const pathname = usePathname()
   const supabase = createClient()
   const isMobile = useMediaQuery("(max-width: 767px)")
-  const [user, setUser] = useState<{ id: string; email?: string; avatar_url?: string } | null>(null)
+  const [user, setUser] = useState<{ id: string; email?: string; full_name?: string; avatar_url?: string } | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,12 +38,13 @@ export function AppNavbar() {
       if (authUser) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("avatar_url")
+          .select("avatar_url, full_name")
           .eq("id", authUser.id)
           .single()
         setUser({
           id: authUser.id,
           email: authUser.email,
+          full_name: profile?.full_name ?? undefined,
           avatar_url: profile?.avatar_url ?? undefined,
         })
       }
@@ -52,7 +53,13 @@ export function AppNavbar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "U"
+  const initials =
+    user?.full_name
+      ?.split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "U"
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-lg">
