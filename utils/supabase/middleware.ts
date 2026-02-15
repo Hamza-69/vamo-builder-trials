@@ -70,6 +70,8 @@ export const updateSession = async (request: NextRequest) => {
   const path = request.nextUrl.pathname;
   const isPublicRoute =
     path === "/" ||
+    path === "/forgot-password" ||
+    path === "/reset-password" ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/confirm-email") ||
@@ -88,6 +90,8 @@ export const updateSession = async (request: NextRequest) => {
   // Redirect authenticated users away from auth pages
   const isAuthRoute =
     path === "/" ||
+    path === "/forgot-password" ||
+    path === "/reset-password" ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/confirm-email");
