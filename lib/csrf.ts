@@ -18,7 +18,10 @@ function generateToken(): string {
  * Compute an HMAC-SHA256 signature for a token using the app secret.
  */
 async function signToken(token: string): Promise<string> {
-  const secret = process.env.CSRF_SECRET || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+  const secret = process.env.CSRF_SECRET;
+  if (!secret) {
+    throw new Error("CSRF_SECRET environment variable is required");
+  }
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",

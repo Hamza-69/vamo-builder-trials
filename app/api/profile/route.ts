@@ -46,8 +46,38 @@ export async function PATCH(request: NextRequest) {
   const { full_name, avatar_url } = body;
 
   const updates: Record<string, string> = {};
-  if (full_name !== undefined) updates.full_name = full_name;
-  if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+
+  if (full_name !== undefined) {
+    if (typeof full_name !== "string") {
+      return NextResponse.json({ error: "full_name must be a string" }, { status: 400 });
+    }
+    const cleaned = full_name.replace(/<[^>]*>/g, "").trim();
+    if (cleaned.length === 0 || cleaned.length > 100) {
+      return NextResponse.json(
+        { error: "Full name must be between 1 and 100 characters" },
+        { status: 400 },
+      );
+    }
+    updates.full_name = cleaned;
+  }
+
+  if (avatar_url !== undefined) {
+    if (typeof avatar_url !== "string") {
+      return NextResponse.json({ error: "avatar_url must be a string" }, { status: 400 });
+    }
+    const trimmedUrl = avatar_url.trim();
+    if (trimmedUrl.length > 2048) {
+      return NextResponse.json({ error: "avatar_url is too long" }, { status: 400 });
+    }
+    if (trimmedUrl && !trimmedUrl.startsWith("https://")) {
+      return NextResponse.json(
+        { error: "avatar_url must be an HTTPS URL" },
+        { status: 400 },
+      );
+    }
+    updates.avatar_url = trimmedUrl;
+  }
+
   updates.updated_at = new Date().toISOString();
 
   const { error } = await admin

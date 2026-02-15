@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { escapeFilterValue } from "@/lib/utils";
 
 /**
  * GET /api/marketplace
@@ -32,8 +33,9 @@ export async function GET(request: NextRequest) {
 
   // Search by title or description
   if (search) {
+    const escaped = escapeFilterValue(search);
     query = query.or(
-      `title.ilike.%${search}%,description.ilike.%${search}%`,
+      `title.ilike.%${escaped}%,description.ilike.%${escaped}%`,
     );
   }
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createServiceClient } from "@/utils/supabase/service";
+import { verifyCsrfToken } from "@/lib/csrf";
+import { writeLimiter } from "@/lib/rate-limit";
 
 /**
  * POST /api/analytics
@@ -8,6 +10,15 @@ import { createServiceClient } from "@/utils/supabase/service";
  * Body: { event_name: string, properties: object }
  */
 export async function POST(request: NextRequest) {
+  // --- CSRF verification ---
+  const csrfValid = await verifyCsrfToken(request);
+  if (!csrfValid) {
+    return NextResponse.json(
+      { error: "Invalid CSRF token" },
+      { status: 403 },
+    );
+  }
+
   const supabase = createClient();
   const admin = createServiceClient();
 
@@ -17,6 +28,15 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // --- Rate limiting ---
+  const { success: rateLimitOk } = writeLimiter.check(user.id);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429 },
+    );
   }
 
   let body: { event_name?: string; properties?: Record<string, unknown> };

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
+import { uploadLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const csrfValid = await verifyCsrfToken(request);
@@ -17,6 +18,15 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // --- Rate limiting ---
+  const { success: rateLimitOk } = uploadLimiter.check(user.id);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: "Too many uploads. Please wait a moment." },
+      { status: 429 },
+    );
   }
 
   const formData = await request.formData();
@@ -43,7 +53,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const ext = file.name.split(".").pop() ?? "png";
+  // Derive extension from validated MIME type (not from user-supplied filename)
+  const mimeToExt: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+  };
+  const ext = mimeToExt[file.type] ?? "png";
   const filePath = `${user.id}/avatar.${ext}`;
 
   // Upload to Supabase Storage (service role)

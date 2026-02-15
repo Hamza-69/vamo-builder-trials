@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyCsrfToken } from "@/lib/csrf";
+import { aiLimiter } from "@/lib/rate-limit";
 import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -23,6 +24,15 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // --- Rate limiting ---
+  const { success: rateLimitOk } = aiLimiter.check(user.id);
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment." },
+      { status: 429 },
+    );
   }
 
   let body: { projectId: string };

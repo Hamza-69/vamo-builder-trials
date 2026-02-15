@@ -4,6 +4,7 @@ import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
 import { awardReward } from "@/lib/rewards";
+import { escapeFilterValue } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -36,7 +37,8 @@ export async function GET(request: NextRequest) {
 
   // Search by name or description
   if (search) {
-    query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    const escaped = escapeFilterValue(search);
+    query = query.or(`name.ilike.%${escaped}%,description.ilike.%${escaped}%`);
   }
 
   // Filter by valuation range

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { escapeFilterValue } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (eventName) {
-    query = query.ilike("event_name", `%${eventName}%`);
+    query = query.ilike("event_name", `%${escapeFilterValue(eventName)}%`);
   }
   if (dateFrom) {
     query = query.gte("created_at", dateFrom);

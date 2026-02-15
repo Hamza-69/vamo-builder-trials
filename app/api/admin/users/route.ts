@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { escapeFilterValue } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -27,8 +28,9 @@ export async function GET(request: NextRequest) {
   let query = supabase.from("profiles").select("*");
 
   if (search) {
+    const escaped = escapeFilterValue(search);
     query = query.or(
-      `email.ilike.%${search}%,full_name.ilike.%${search}%`
+      `email.ilike.%${escaped}%,full_name.ilike.%${escaped}%`
     );
   }
 

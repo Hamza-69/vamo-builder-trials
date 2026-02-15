@@ -25,7 +25,8 @@ export async function signIn(formData: FormData) {
 export async function signUp(formData: FormData) {
   const supabase = createClient();
 
-  const fullName = (formData.get("fullName") as string)?.trim();
+  const rawFullName = (formData.get("fullName") as string)?.trim();
+  const fullName = rawFullName?.replace(/<[^>]*>/g, "").trim();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -33,6 +34,10 @@ export async function signUp(formData: FormData) {
   // Server-side validation
   if (!fullName || fullName.length < 2) {
     return { error: "Full name is required." };
+  }
+
+  if (fullName.length > 100) {
+    return { error: "Full name must be 100 characters or fewer." };
   }
 
   if (password !== confirmPassword) {
@@ -59,7 +64,7 @@ export async function signUp(formData: FormData) {
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
     },
   });
 
