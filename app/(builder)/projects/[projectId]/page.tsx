@@ -27,7 +27,7 @@ export default async function ProjectPage({
   }
 
   return (
-    <div className="h-screen w-screen">
+    <div className="h-dvh w-dvw overflow-hidden">
       <ProjectView projectId={params.projectId} />
     </div>
   )

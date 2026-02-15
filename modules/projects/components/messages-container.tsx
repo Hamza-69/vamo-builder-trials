@@ -37,7 +37,10 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate, onPineappleEarn
   // Scroll to bottom when new messages are appended (optimistic user msg or assistant reply)
   useEffect(() => {
     if (messages.length > prevMessageCountRef.current && !isLoadingMoreRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+      const container = scrollContainerRef.current
+      if (container) {
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" })
+      }
     }
     prevMessageCountRef.current = messages.length
   }, [messages.length])
@@ -45,9 +48,12 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate, onPineappleEarn
   // Initial scroll to bottom once first page loads
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: "instant" as ScrollBehavior })
+      const container = scrollContainerRef.current
+      if (container) {
+        container.scrollTo({ top: container.scrollHeight, behavior: "instant" as ScrollBehavior })
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading && messages.length === 0])
 
   // Infinite scroll up — load more when the sentinel enters the viewport

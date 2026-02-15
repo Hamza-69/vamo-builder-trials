@@ -137,7 +137,7 @@ export const ProjectHeader = ({
               .select("id", { count: "exact", head: true })
               .eq("project_id", projectId)
               .not("event_type", "in", "(listing_created,listing_relisted,reward_earned,reward_redeemed)")
-              .gt("created_at", 
+              .gt("created_at",
                 // Get the created_at of the last timeline item
                 (await supabase
                   .from("activity_events")
@@ -218,7 +218,7 @@ export const ProjectHeader = ({
 
   // ── render ──────────────────────────────────────────────────
   return (
-    <header className="sticky top-0 z-50 bg-background px-3 py-2 grid grid-cols-[1fr_auto_1fr] items-center border-b gap-x-2 shrink-0">
+    <header className="z-50 bg-background px-3 py-2 grid grid-cols-[1fr_auto_1fr] items-center border-b gap-x-2 shrink-0">
       {/* ── Left: back + name + pineapple ── */}
       <div className="flex items-center gap-1.5 min-w-0">
         {/* Project dropdown (Go to Dashboard + Appearance) */}
