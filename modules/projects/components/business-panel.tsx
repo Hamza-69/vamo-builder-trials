@@ -518,12 +518,14 @@ function LinkedAssetsSection({
   websiteUrl,
   isOwner,
   onLink,
+  onPineappleEarned,
 }: {
   linkedinUrl: string | null;
   githubUrl: string | null;
   websiteUrl: string | null;
   isOwner: boolean;
   onLink: (type: "linkedin" | "github" | "website", url: string) => Promise<{ pineapples_earned?: number } | void>;
+  onPineappleEarned?: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<"linkedin" | "github" | "website">("linkedin");
@@ -570,6 +572,7 @@ function LinkedAssetsSection({
       const earned = result?.pineapples_earned ?? 0;
       if (earned > 0) {
         toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked! +${earned} 🍍`);
+        onPineappleEarned?.();
       } else {
         toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked!`);
       }
@@ -904,9 +907,10 @@ function EditableHeader({
 
 interface BusinessPanelProps {
   projectId: string;
+  onPineappleEarned?: () => void;
 }
 
-export default function BusinessPanel({ projectId }: BusinessPanelProps) {
+export default function BusinessPanel({ projectId, onPineappleEarned }: BusinessPanelProps) {
   const {
     data,
     isLoading,
@@ -1029,6 +1033,7 @@ export default function BusinessPanel({ projectId }: BusinessPanelProps) {
             websiteUrl={project.url}
             isOwner={isOwner}
             onLink={linkAsset}
+            onPineappleEarned={onPineappleEarned}
           />
         </SectionWrapper>
 

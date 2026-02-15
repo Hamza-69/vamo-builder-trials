@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { MessagesContainer } from "../components/messages-container"
-import { Suspense, useCallback, useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { ErrorBoundary } from "react-error-boundary"
 import { MessagesSkeleton } from "../components/message-loading"
 import BusinessPanel from "../components/business-panel"
@@ -20,6 +20,7 @@ export const ProjectView = ({ projectId }: Props) => {
   const [activePanels, setActivePanels] = useState<string[]>(["chat", "preview", "business"])
   const [isMounted, setIsMounted] = useState(false)
   const [businessPanelKey, setBusinessPanelKey] = useState(0)
+  const refetchBalanceRef = useRef<(() => void) | null>(null)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1279px)")
   const isMobile = useMediaQuery("(max-width: 767px)")
@@ -31,6 +32,14 @@ export const ProjectView = ({ projectId }: Props) => {
     },
     [],
   )
+
+  const handlePineappleEarned = useCallback(() => {
+    refetchBalanceRef.current?.()
+  }, [])
+
+  const handleRefetchBalance = useCallback((refetch: () => void) => {
+    refetchBalanceRef.current = refetch
+  }, [])
 
   const url = "https://vibable.xyz"
   const screenshotUrl = "https://placehold.co/600x400"
@@ -54,6 +63,7 @@ export const ProjectView = ({ projectId }: Props) => {
           isDesktop={false}
           isTablet={false}
           isMobile={true}
+          onRefetchBalance={handleRefetchBalance}
         />
 
         <Tabs defaultValue="chat" className="flex-1 flex flex-col h-full w-full">
@@ -69,7 +79,7 @@ export const ProjectView = ({ projectId }: Props) => {
             <TabsContent value="chat" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
               <ErrorBoundary fallback={<p className="p-4">Error loading messages.</p>}>
                 <Suspense fallback={<MessagesSkeleton />}>
-                  <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} />
+                  <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} onPineappleEarned={handlePineappleEarned} />
                 </Suspense>
               </ErrorBoundary>
             </TabsContent>
@@ -77,7 +87,7 @@ export const ProjectView = ({ projectId }: Props) => {
               <WebPreview url={url} screenshotUrl={screenshotUrl} />
             </TabsContent>
             <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
-              <BusinessPanel key={businessPanelKey} projectId={projectId} />
+              <BusinessPanel key={businessPanelKey} projectId={projectId} onPineappleEarned={handlePineappleEarned} />
             </TabsContent>
           </div>
         </Tabs>
@@ -126,7 +136,7 @@ export const ProjectView = ({ projectId }: Props) => {
   const chatSheetContent = (
     <ErrorBoundary fallback={<p className="p-4">Error loading messages.</p>}>
       <Suspense fallback={<MessagesSkeleton />}>
-        <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} />
+        <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} onPineappleEarned={handlePineappleEarned} />
       </Suspense>
     </ErrorBoundary>
   )
@@ -141,6 +151,7 @@ export const ProjectView = ({ projectId }: Props) => {
         isTablet={isTablet}
         isMobile={false}
         chatSheetContent={isTablet ? chatSheetContent : undefined}
+        onRefetchBalance={handleRefetchBalance}
       />
 
       <div className="flex flex-1 min-h-0 w-full">
@@ -148,7 +159,7 @@ export const ProjectView = ({ projectId }: Props) => {
           <div style={{ flex: flexValues.messages }} className="flex flex-col min-h-0">
             <ErrorBoundary fallback={<p>Error loading messages.</p>}>
               <Suspense fallback={<MessagesSkeleton />}>
-                <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} />
+                <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} onPineappleEarned={handlePineappleEarned} />
               </Suspense>
             </ErrorBoundary>
           </div>
@@ -168,7 +179,7 @@ export const ProjectView = ({ projectId }: Props) => {
             style={{ flex: flexValues.business }}
             className={cn("flex flex-col min-h-0", (showMessages || showPreview) && "border-l")}
           >
-            <BusinessPanel key={businessPanelKey} projectId={projectId} />
+            <BusinessPanel key={businessPanelKey} projectId={projectId} onPineappleEarned={handlePineappleEarned} />
           </div>
         )}
       </div>

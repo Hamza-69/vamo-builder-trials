@@ -8,9 +8,10 @@ import { useChat, type ChatResponse } from "../hooks/use-chat"
 interface Props {
   projectId: string
   onBusinessUpdate?: (update: ChatResponse["business_update"]) => void
+  onPineappleEarned?: () => void
 }
 
-export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
+export const MessagesContainer = ({ projectId, onBusinessUpdate, onPineappleEarned }: Props) => {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevMessageCountRef = useRef(0)
@@ -88,6 +89,7 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
       if (result) {
         if (result.pineapples_earned > 0) {
           toast.success(`+${result.pineapples_earned} 🍍 ${result.pineapples_earned === 1 ? "pineapple" : "pineapples"} earned!`)
+          onPineappleEarned?.()
         }
         if (onBusinessUpdate && result.business_update) {
           onBusinessUpdate(result.business_update)
@@ -97,7 +99,7 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
       }
       return result
     },
-    [sendMessage, error, onBusinessUpdate],
+    [sendMessage, error, onBusinessUpdate, onPineappleEarned],
   )
 
   const isInitialLoad = isLoading && messages.length === 0

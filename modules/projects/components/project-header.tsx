@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -59,6 +59,8 @@ interface ProjectHeaderProps {
   isMobile: boolean
   /** Content rendered inside the tablet chat sheet */
   chatSheetContent?: React.ReactNode
+  /** Called after initial balance fetch so parent can get the refetch function */
+  onRefetchBalance?: (refetch: () => void) => void
 }
 
 export const ProjectHeader = ({
@@ -68,6 +70,7 @@ export const ProjectHeader = ({
   isTablet,
   isMobile,
   chatSheetContent,
+  onRefetchBalance,
 }: ProjectHeaderProps) => {
   const supabase = createClient()
 
@@ -155,6 +158,24 @@ export const ProjectHeader = ({
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  // ── expose a refetch function so siblings can refresh balance ──
+  const refetchBalance = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from("profiles")
+      .select("pineapple_balance")
+      .eq("id", user.id)
+      .single()
+    if (data) setProfile(data)
+  }, [supabase])
+
+  useEffect(() => {
+    onRefetchBalance?.(refetchBalance)
+  }, [refetchBalance, onRefetchBalance])
 
   // ── focus input when editing starts ─────────────────────────
   useEffect(() => {
