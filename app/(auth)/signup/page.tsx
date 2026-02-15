@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signUp, signInWithGoogle } from "../actions";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 const PASSWORD_RULES = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -107,7 +107,14 @@ export default function SignupPage() {
             fill="#EA4335"
           />
         </svg>
-        {googleLoading ? "Connecting…" : "Continue with Google"}
+        {googleLoading ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Connecting…
+          </>
+        ) : (
+          "Continue with Google"
+        )}
       </Button>
 
       {/* Divider */}
@@ -129,6 +136,7 @@ export default function SignupPage() {
             required
             minLength={2}
             autoComplete="name"
+            disabled={loading}
           />
         </div>
 
@@ -141,6 +149,7 @@ export default function SignupPage() {
             placeholder="you@example.com"
             required
             autoComplete="email"
+            disabled={loading}
           />
         </div>
 
@@ -156,6 +165,7 @@ export default function SignupPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
           />
           {/* Password strength indicators */}
           {password.length > 0 && (
@@ -193,6 +203,7 @@ export default function SignupPage() {
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            disabled={loading}
           />
           {confirmPassword.length > 0 && !passwordsMatch && (
             <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
@@ -215,6 +226,7 @@ export default function SignupPage() {
           className="w-full"
           disabled={loading || !allRulesPass || !passwordsMatch}
         >
+          {loading && <Loader2 className="size-4 animate-spin" />}
           {loading ? "Creating account…" : "Sign Up"}
         </Button>
       </form>

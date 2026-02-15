@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signIn, signInWithGoogle } from "../actions";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +70,14 @@ export default function LoginPage() {
             fill="#EA4335"
           />
         </svg>
-        {googleLoading ? "Connecting…" : "Continue with Google"}
+        {googleLoading ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Connecting…
+          </>
+        ) : (
+          "Continue with Google"
+        )}
       </Button>
 
       {/* Divider */}
@@ -90,6 +98,7 @@ export default function LoginPage() {
             placeholder="you@example.com"
             required
             autoComplete="email"
+            disabled={loading}
           />
         </div>
 
@@ -110,6 +119,7 @@ export default function LoginPage() {
             placeholder="••••••••"
             required
             autoComplete="current-password"
+            disabled={loading}
           />
         </div>
 
@@ -118,6 +128,7 @@ export default function LoginPage() {
         )}
 
         <Button type="submit" className="w-full" disabled={loading}>
+          {loading && <Loader2 className="size-4 animate-spin" />}
           {loading ? "Signing in…" : "Sign In"}
         </Button>
       </form>
