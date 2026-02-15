@@ -439,7 +439,7 @@ export async function POST(request: NextRequest) {
     if (promptReward.rewarded) totalPineapples += promptReward.amount;
 
     // 6b. Tag bonus: +1 🍍 when tagged with feature/customer/revenue
-    const rewardableTags = new Set(["feature", "customer", "revenue"]);
+    const rewardableTags = new Set(["feature", "customer", "revenue", "ask"]);
     const effectiveTag = tag ?? null;
     if (effectiveTag && rewardableTags.has(effectiveTag)) {
       const tagReward = await awardReward({
