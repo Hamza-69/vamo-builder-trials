@@ -88,7 +88,7 @@ Your job:
   "intent": "feature|customer|revenue|ask|general",
   "business_update": {
     "progress_delta": 0,
-    "traction_signal": "string or null",
+    "traction_signal": "A concise one-line description of the traction milestone achieved (e.g. 'Shipped dark-mode feature', 'Added 12 beta users from Product Hunt', 'First paying customer — $49/mo plan'). Use null when the message does NOT describe a concrete milestone.",
     "valuation_adjustment": "up|down|none"
   }
 }
@@ -363,6 +363,52 @@ export async function POST(request: NextRequest) {
 
   if (eventError) {
     console.error("[chat] Failed to insert activity event:", eventError.message);
+  }
+
+  // ── 5b. Insert traction signal into dedicated table + log activity event ────
+  const tractionSignalText = aiResult.business_update.traction_signal;
+  if (tractionSignalText) {
+    const intentToSignalType: Record<string, string> = {
+      feature: "feature_shipped",
+      customer: "customer_added",
+      revenue: "revenue_logged",
+    };
+    const signalType = intentToSignalType[aiResult.intent] ?? "feature_shipped";
+
+    // Insert into traction_signals table
+    const { error: signalError } = await supabase
+      .from("traction_signals")
+      .insert({
+        project_id: projectId,
+        user_id: user.id,
+        signal_type: signalType,
+        description: tractionSignalText.slice(0, 500),
+        source: "prompt",
+        prompt_message_id: userMsg.id,
+        metadata: { intent: aiResult.intent },
+      });
+
+    if (signalError) {
+      console.error("[chat] Failed to insert traction signal:", signalError.message);
+    }
+
+    // Also log as activity event for the timeline
+    const { error: tractionEventError } = await supabase
+      .from("activity_events")
+      .insert({
+        project_id: projectId,
+        user_id: user.id,
+        event_type: signalType,
+        description: tractionSignalText.slice(0, 200),
+        metadata: {
+          source: "prompt",
+          prompt_message_id: userMsg.id,
+        },
+      });
+
+    if (tractionEventError) {
+      console.error("[chat] Failed to insert traction activity event:", tractionEventError.message);
+    }
   }
 
   // ── 6. Award pineapples ─────────────────────────────────────────────────────

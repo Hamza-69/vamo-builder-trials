@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string   
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activity_events: {
@@ -122,6 +97,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_summaries: {
+        Row: {
+          created_at: string | null
+          id: string
+          messages_up_to: string
+          project_id: string
+          summary: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          messages_up_to: string
+          project_id: string
+          summary: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          messages_up_to?: string
+          project_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_summaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -343,6 +350,13 @@ export type Database = {
           description: string | null
           github_url: string | null
           id: string
+          is_activity_timeline_shown: boolean
+          is_links_shown: boolean
+          is_progress_shown: boolean
+          is_quote_shown: boolean
+          is_traction_shown: boolean
+          is_valuation_shown: boolean
+          is_why_shown: boolean
           linkedin_url: string | null
           name: string
           owner_id: string
@@ -360,6 +374,13 @@ export type Database = {
           description?: string | null
           github_url?: string | null
           id?: string
+          is_activity_timeline_shown?: boolean
+          is_links_shown?: boolean
+          is_progress_shown?: boolean
+          is_quote_shown?: boolean
+          is_traction_shown?: boolean
+          is_valuation_shown?: boolean
+          is_why_shown?: boolean
           linkedin_url?: string | null
           name: string
           owner_id: string
@@ -377,6 +398,13 @@ export type Database = {
           description?: string | null
           github_url?: string | null
           id?: string
+          is_activity_timeline_shown?: boolean
+          is_links_shown?: boolean
+          is_progress_shown?: boolean
+          is_quote_shown?: boolean
+          is_traction_shown?: boolean
+          is_valuation_shown?: boolean
+          is_why_shown?: boolean
           linkedin_url?: string | null
           name?: string
           owner_id?: string
@@ -488,12 +516,73 @@ export type Database = {
           },
         ]
       }
+      traction_signals: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          metadata: Json | null
+          project_id: string
+          prompt_message_id: string | null
+          signal_type: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          metadata?: Json | null
+          project_id: string
+          prompt_message_id?: string | null
+          signal_type: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string
+          prompt_message_id?: string | null
+          signal_type?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traction_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "traction_signals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: never; Returns: boolean }
+      process_redemption:
+        | { Args: { p_amount: number; p_reward_type?: string }; Returns: Json }
+        | {
+            Args: {
+              p_amount: number
+              p_project_id?: string
+              p_reward_type?: string
+            }
+            Returns: Json
+          }
     }
     Enums: {
       [_ in never]: never
@@ -622,9 +711,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

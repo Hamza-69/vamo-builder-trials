@@ -5,7 +5,7 @@ import { MessagesContainer } from "../components/messages-container"
 import { Suspense, useCallback, useEffect, useState } from "react"
 import { ErrorBoundary } from "react-error-boundary"
 import { MessagesSkeleton } from "../components/message-loading"
-import BussinessPage from "../components/bussiness-page"
+import BusinessPanel from "../components/business-panel"
 import { WebPreview } from "../components/web-preview"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -77,7 +77,7 @@ export const ProjectView = ({ projectId }: Props) => {
               <WebPreview url={url} screenshotUrl={screenshotUrl} />
             </TabsContent>
             <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
-              <BussinessPage key={businessPanelKey} />
+              <BusinessPanel key={businessPanelKey} projectId={projectId} />
             </TabsContent>
           </div>
         </Tabs>
@@ -168,7 +168,7 @@ export const ProjectView = ({ projectId }: Props) => {
             style={{ flex: flexValues.business }}
             className={cn("flex flex-col min-h-0", (showMessages || showPreview) && "border-l")}
           >
-            <BussinessPage key={businessPanelKey} />
+            <BusinessPanel key={businessPanelKey} projectId={projectId} />
           </div>
         )}
       </div>
