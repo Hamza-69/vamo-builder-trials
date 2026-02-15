@@ -159,7 +159,7 @@ function SectionWrapper({
 }: SectionWrapperProps) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
         {isOwner && (
           <TooltipProvider>
@@ -260,7 +260,7 @@ function ValuationSection({
       </div>
       {isEditing ? (
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground">Low ($)</Label>
               <Input
@@ -314,7 +314,7 @@ function ValuationSection({
           )}
         >
           {hasValuation ? (
-            <p className="text-lg font-bold tracking-tight">
+            <p className="text-lg font-bold tracking-tight break-words">
               {formatCurrency(valueLow)} – {formatCurrency(valueHigh)}
             </p>
           ) : (
@@ -323,8 +323,9 @@ function ValuationSection({
             </Badge>
           )}
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 
@@ -419,7 +420,7 @@ function WhyBuiltSection({
           )}
         >
           {whyBuilt ? (
-            <p className="whitespace-pre-wrap">{whyBuilt}</p>
+            <p className="whitespace-pre-wrap break-words">{whyBuilt}</p>
           ) : (
             <p className="text-muted-foreground italic">
               {isOwner ? "Click to add your motivation…" : "No description yet."}
@@ -499,7 +500,7 @@ function TractionSignalsSection({
         >
           <div className="mt-0.5">{getEventIcon(signal.signal_type)}</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm leading-snug">
+            <p className="text-sm leading-snug break-words">
               {signal.description || signal.signal_type.replace(/_/g, " ")}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -585,7 +586,7 @@ function LinkedAssetsSection({
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {assets.map((asset) => (
           <div
             key={asset.type}
@@ -701,7 +702,7 @@ function MiniTimelineSection({
           </div>
           {/* Content */}
           <div className="flex-1 pb-3 min-w-0">
-            <p className="text-sm leading-snug truncate">
+            <p className="text-sm leading-snug break-words">
               {event.description || event.event_type.replace(/_/g, " ")}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -823,12 +824,12 @@ function EditableHeader({
           <h2
             onClick={() => isOwner && setIsEditingName(true)}
             className={cn(
-              "text-lg font-bold tracking-tight flex items-center gap-1.5",
+              "text-lg font-bold tracking-tight flex items-start gap-1.5 break-words text-left",
               isOwner && "cursor-pointer hover:opacity-75 transition-opacity",
             )}
           >
             {name}
-            {isOwner && <PencilIcon className="size-3 text-muted-foreground shrink-0" />}
+            {isOwner && <PencilIcon className="size-3 text-muted-foreground shrink-0 mt-1.5" />}
           </h2>
         )}
 
@@ -864,10 +865,10 @@ function EditableHeader({
             )}
           >
             {description ? (
-              <p className="line-clamp-2 flex items-center gap-1">
-                <FileText className="size-3 shrink-0" />
-                {description}
-              </p>
+              <div className="flex items-start gap-1">
+                <FileText className="size-3 shrink-0 mt-0.5" />
+                <p className="line-clamp-2 text-xs break-words">{description}</p>
+              </div>
             ) : (
               <p className="italic flex items-center gap-1">
                 {isOwner ? (
