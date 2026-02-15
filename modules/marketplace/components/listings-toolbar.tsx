@@ -161,8 +161,8 @@ export function ListingsToolbar({
 
       {/* Expandable filter panel */}
       {filtersOpen && (
-        <div className="rounded-lg border bg-card p-4 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-lg border bg-card p-4 space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200 w-full max-w-full overflow-x-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
             {/* Price range */}
             <fieldset>
               <legend className="text-sm font-medium text-foreground mb-2">

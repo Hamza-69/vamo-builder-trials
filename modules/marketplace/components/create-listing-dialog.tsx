@@ -24,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useCsrf } from "@/hooks/use-csrf";
 import { createClient } from "@/utils/supabase/client";
@@ -297,9 +296,9 @@ export function CreateListingDialog({
   const progressScore = project?.progress_score ?? 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-4">
+    <Dialog open={open} onOpenChange={onOpenChange} >
+      <DialogContent className="w-[90%] max-w-md sm:max-w-lg h-[100dvh] max-h-[100dvh] p-0 gap-0 flex flex-col m-auto mt-2">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle>
             {isRelist ? "Relist on Marketplace" : "Create Marketplace Listing"}
           </DialogTitle>
@@ -310,7 +309,7 @@ export function CreateListingDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-180px)] px-6">
+        <div className="flex-1 overflow-y-auto px-6 w-full max-w-full">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -543,9 +542,9 @@ export function CreateListingDialog({
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="px-6 py-4 border-t">
+        <DialogFooter className="px-6 py-4 border-t shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

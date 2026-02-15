@@ -52,7 +52,7 @@ export function OfferDialog({
 }: OfferDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[100dvh] overflow-y-auto">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="size-8 animate-spin text-primary" />
