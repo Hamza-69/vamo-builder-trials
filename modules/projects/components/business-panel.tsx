@@ -612,6 +612,17 @@ function LinkedAssetsSection({
                 >
                   <ExternalLink className="size-3" />
                 </a>
+                {isOwner && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => openDialog(asset.type)}
+                  >
+                    <PencilIcon className="size-3" />
+                    <span className="sr-only">Edit {asset.label}</span>
+                  </Button>
+                )}
               </div>
             ) : isOwner ? (
               <Button
