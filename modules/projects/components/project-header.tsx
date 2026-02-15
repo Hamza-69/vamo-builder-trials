@@ -34,6 +34,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MessageSquare } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 import { CreateListingDialog } from "@/modules/marketplace/components/create-listing-dialog"
+import { OfferDialog } from "./offer-dialog"
+import { useOffer } from "../hooks/use-offer"
 
 interface ProjectData {
   id: string
@@ -79,7 +81,13 @@ export const ProjectHeader = ({
   const [listDialogOpen, setListDialogOpen] = useState(false)
   const [isOutdated, setIsOutdated] = useState(false)
   const [oldScreenshots, setOldScreenshots] = useState<string[]>([])
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false)
+  const [listingInitialPriceLow, setListingInitialPriceLow] = useState<number | undefined>(undefined)
+  const [listingInitialPriceHigh, setListingInitialPriceHigh] = useState<number | undefined>(undefined)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // ── offer hook ──────────────────────────────────────────────
+  const { offer, isLoading: offerLoading, error: offerError, requestOffer } = useOffer(projectId)
 
   // ── fetch project + profile ─────────────────────────────────
   useEffect(() => {
@@ -301,6 +309,10 @@ export const ProjectHeader = ({
                   size="sm"
                   className="gap-1.5"
                   disabled={progressScore < 10 || (isAlreadyListed && !canRelist)}
+                  onClick={async () => {
+                    setOfferDialogOpen(true)
+                    await requestOffer()
+                  }}
                 >
                   <SparklesIcon className="size-3.5" />
                   <span className="hidden sm:inline">Get Vamo Offer</span>
@@ -369,12 +381,34 @@ export const ProjectHeader = ({
       <CreateListingDialog
         projectId={projectId}
         open={listDialogOpen}
-        onOpenChange={setListDialogOpen}
+        onOpenChange={(open) => {
+          setListDialogOpen(open)
+          if (!open) {
+            setListingInitialPriceLow(undefined)
+            setListingInitialPriceHigh(undefined)
+          }
+        }}
         isRelist={canRelist}
         existingScreenshots={canRelist ? oldScreenshots : undefined}
+        initialPriceLow={listingInitialPriceLow}
+        initialPriceHigh={listingInitialPriceHigh}
         onSuccess={() => {
           setProject((prev) => prev ? { ...prev, status: 'listed' } : prev)
           setIsOutdated(false)
+        }}
+      />
+
+      {/* Offer dialog */}
+      <OfferDialog
+        open={offerDialogOpen}
+        onOpenChange={setOfferDialogOpen}
+        offer={offer}
+        isLoading={offerLoading}
+        error={offerError}
+        onListForSale={(low, high) => {
+          setListingInitialPriceLow(low)
+          setListingInitialPriceHigh(high)
+          setListDialogOpen(true)
         }}
       />
     </header>

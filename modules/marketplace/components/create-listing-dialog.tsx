@@ -9,6 +9,7 @@ import {
   Zap,
   X,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -27,7 +28,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useCsrf } from "@/hooks/use-csrf";
 import { createClient } from "@/utils/supabase/client";
-import { generateListingDescription } from "../utils/generate-description";
 import { toast } from "sonner";
 import type { TimelineEvent } from "../types";
 
@@ -40,6 +40,10 @@ interface CreateListingDialogProps {
   existingScreenshots?: string[];
   /** Whether this is a relist (archive old listing + create new) */
   isRelist?: boolean;
+  /** Pre-fill asking price low (e.g. from a Vamo offer) */
+  initialPriceLow?: number;
+  /** Pre-fill asking price high (e.g. from a Vamo offer) */
+  initialPriceHigh?: number;
 }
 
 interface ProjectData {
@@ -58,6 +62,8 @@ export function CreateListingDialog({
   onSuccess,
   existingScreenshots,
   isRelist = false,
+  initialPriceLow,
+  initialPriceHigh,
 }: CreateListingDialogProps) {
   const supabase = createClient();
   const { csrfFetch } = useCsrf();
@@ -79,6 +85,7 @@ export function CreateListingDialog({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [generatingDesc, setGeneratingDesc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch project data and activity events on open ──────────
@@ -101,11 +108,12 @@ export function CreateListingDialog({
         if (proj) {
           setProject(proj);
           setTitle(proj.name);
-          setDescription(
-            generateListingDescription(proj.name, proj.description),
-          );
-          setPriceLow(proj.valuation_low ?? 0);
-          setPriceHigh(proj.valuation_high ?? 0);
+          setDescription("");
+          setPriceLow(initialPriceLow ?? proj.valuation_low ?? 0);
+          setPriceHigh(initialPriceHigh ?? proj.valuation_high ?? 0);
+
+          // Generate AI description
+          generateAiDescription();
         }
 
         // Fetch activity events for timeline snapshot
@@ -138,6 +146,36 @@ export function CreateListingDialog({
     setScreenshots(existingScreenshots?.slice(0, 5) ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, projectId]);
+
+  // ── Generate AI description ─────────────────────────────────
+  const generateAiDescription = async () => {
+    setGeneratingDesc(true);
+    try {
+      const res = await csrfFetch("/api/listings/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to generate description");
+      }
+
+      const data = await res.json();
+      setDescription(data.description);
+    } catch (err) {
+      console.error("[listing] AI description error:", err);
+      // Fall back to a simple template
+      setDescription((prev) => {
+        if (prev) return prev;
+        return `A promising project with active development and demonstrated progress on the Vamo platform.`;
+      });
+      toast.error("Failed to generate AI description");
+    } finally {
+      setGeneratingDesc(false);
+    }
+  };
 
   // ── Screenshot upload ───────────────────────────────────────
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -292,16 +330,42 @@ export function CreateListingDialog({
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="listing-desc">Description</Label>
-                <Textarea
-                  id="listing-desc"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your project…"
-                  rows={4}
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="listing-desc">Description</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    disabled={generatingDesc}
+                    onClick={generateAiDescription}
+                  >
+                    {generatingDesc ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-3" />
+                    )}
+                    {generatingDesc ? "Generating…" : "Regenerate"}
+                  </Button>
+                </div>
+                {generatingDesc && !description ? (
+                  <div className="flex items-center justify-center py-6 rounded-md border border-dashed">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" />
+                      Generating AI description…
+                    </div>
+                  </div>
+                ) : (
+                  <Textarea
+                    id="listing-desc"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe your project…"
+                    rows={4}
+                  />
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Auto-generated description. Feel free to edit.
+                  AI-generated description. Feel free to edit.
                 </p>
               </div>
 
