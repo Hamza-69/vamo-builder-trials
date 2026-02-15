@@ -11,6 +11,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProjectHeader } from "../components/project-header"
 import type { ChatResponse } from "../hooks/use-chat"
+import type { Project } from "../types"
 
 interface Props {
   projectId: string
@@ -21,6 +22,7 @@ export const ProjectView = ({ projectId }: Props) => {
   const [isMounted, setIsMounted] = useState(false)
   const [businessPanelKey, setBusinessPanelKey] = useState(0)
   const refetchBalanceRef = useRef<(() => void) | null>(null)
+  const [project, setProject] = useState<Project | null>(null)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1279px)")
   const isMobile = useMediaQuery("(max-width: 767px)")
@@ -41,8 +43,24 @@ export const ProjectView = ({ projectId }: Props) => {
     refetchBalanceRef.current = refetch
   }, [])
 
-  const url = "https://vibable.xyz"
-  const screenshotUrl = "https://placehold.co/600x400"
+  // Fetch project data for url and screenshot_url
+  useEffect(() => {
+    async function fetchProject() {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/business`)
+        if (res.ok) {
+          const data = await res.json()
+          setProject(data.project)
+        }
+      } catch {
+        // Silently fail — the WebPreview will show its empty state
+      }
+    }
+    fetchProject()
+  }, [projectId, businessPanelKey])
+
+  const url = project?.url ?? null
+  const screenshotUrl = project?.screenshot_url ?? null
 
   useEffect(() => {
     setIsMounted(true)
@@ -86,7 +104,7 @@ export const ProjectView = ({ projectId }: Props) => {
             <TabsContent value="preview" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
               <WebPreview url={url} screenshotUrl={screenshotUrl} />
             </TabsContent>
-            <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
+            <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col overflow-hidden">
               <BusinessPanel key={businessPanelKey} projectId={projectId} onPineappleEarned={handlePineappleEarned} />
             </TabsContent>
           </div>
