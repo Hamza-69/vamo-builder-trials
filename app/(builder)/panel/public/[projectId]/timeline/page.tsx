@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Rocket,
@@ -23,7 +24,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 /* ───────────── Types ───────────── */
 
@@ -179,18 +179,19 @@ export default function TimelinePage({
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 grid grid-cols-[1fr_auto_1fr] items-center">
           <Link
             href={`/panel/public/${params.projectId}`}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors justify-self-start"
           >
             <ArrowLeft className="size-4" />
             <span className="hidden sm:inline">Back to Panel</span>
           </Link>
-          <Link href="/" className="font-semibold text-sm">
+          <Link href="/" className="flex items-center gap-1.5 font-semibold text-sm">
+            <Image src="/icon.svg" alt="Vamo" width={20} height={20} />
             Vamo
           </Link>
-          <div className="w-20" />
+          <div />
         </div>
       </header>
 
@@ -278,7 +279,7 @@ export default function TimelinePage({
       {/* Footer */}
       <footer className="border-t mt-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Powered by Vamo</span>
+          <span className="flex items-center gap-1.5">Powered by <Image src="/icon.svg" alt="Vamo" width={14} height={14} /> <span className="font-medium text-foreground">Vamo</span></span>
           <Link href="/marketplace" className="hover:text-foreground transition-colors">
             Explore Marketplace →
           </Link>

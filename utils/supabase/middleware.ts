@@ -75,7 +75,9 @@ export const updateSession = async (request: NextRequest) => {
     path.startsWith("/confirm-email") ||
     path.startsWith("/auth/callback") ||
     path.startsWith("/marketplace") ||
-    path.startsWith("/api/marketplace");
+    path.startsWith("/api/marketplace") ||
+    path.startsWith("/panel/public") ||
+    /^\/api\/projects\/[^/]+\/business(\/|$)/.test(path);
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

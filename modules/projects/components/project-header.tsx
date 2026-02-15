@@ -218,7 +218,7 @@ export const ProjectHeader = ({
 
   // ── render ──────────────────────────────────────────────────
   return (
-    <header className="px-3 py-2 grid grid-cols-[1fr_auto_1fr] items-center border-b gap-x-2">
+    <header className="sticky top-0 z-50 bg-background px-3 py-2 grid grid-cols-[1fr_auto_1fr] items-center border-b gap-x-2 shrink-0">
       {/* ── Left: back + name + pineapple ── */}
       <div className="flex items-center gap-1.5 min-w-0">
         {/* Project dropdown (Go to Dashboard + Appearance) */}
