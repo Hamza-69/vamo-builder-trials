@@ -949,8 +949,8 @@ export default function BusinessPanel({ projectId, onPineappleEarned }: Business
   };
 
   return (
-    <ScrollArea className="h-full">
-      <div className="p-4 space-y-4">
+    <ScrollArea className="h-full w-full overflow-hidden">
+      <div className="p-4 space-y-4 min-w-0">
         {/* Header */}
         <EditableHeader
           name={project.name}
