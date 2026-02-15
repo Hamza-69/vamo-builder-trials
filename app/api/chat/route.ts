@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
+import { awardReward } from "@/lib/rewards";
 import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -26,7 +27,6 @@ interface AiResponse {
 
 const VALID_TAGS = new Set(["feature", "customer", "revenue", "ask", "general"]);
 const VALID_INTENTS = new Set(["feature", "customer", "revenue", "ask", "general"]);
-const PINEAPPLES_PER_PROMPT = 1;
 const CONTEXT_MESSAGE_LIMIT = 20;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -335,7 +335,7 @@ export async function POST(request: NextRequest) {
       content: aiResult.reply,
       extracted_intent: aiResult.intent,
       tag: tag ?? aiResult.intent,
-      pineapples_earned: PINEAPPLES_PER_PROMPT,
+      pineapples_earned: 1, // display value; actual reward below
       message_type: "success",
     })
     .select()
@@ -356,7 +356,6 @@ export async function POST(request: NextRequest) {
       metadata: {
         intent: aiResult.intent,
         tag: tag ?? null,
-        pineapples: PINEAPPLES_PER_PROMPT,
         traction_signal: aiResult.business_update.traction_signal,
       },
     });
@@ -367,13 +366,15 @@ export async function POST(request: NextRequest) {
 
   // ── 5b. Insert traction signal into dedicated table + log activity event ────
   const tractionSignalText = aiResult.business_update.traction_signal;
+  let tractionSignalType: string | null = null;
+
   if (tractionSignalText) {
     const intentToSignalType: Record<string, string> = {
       feature: "feature_shipped",
       customer: "customer_added",
       revenue: "revenue_logged",
     };
-    const signalType = intentToSignalType[aiResult.intent] ?? "feature_shipped";
+    tractionSignalType = intentToSignalType[aiResult.intent] ?? "feature_shipped";
 
     // Insert into traction_signals table
     const { error: signalError } = await supabase
@@ -381,7 +382,7 @@ export async function POST(request: NextRequest) {
       .insert({
         project_id: projectId,
         user_id: user.id,
-        signal_type: signalType,
+        signal_type: tractionSignalType,
         description: tractionSignalText.slice(0, 500),
         source: "prompt",
         prompt_message_id: userMsg.id,
@@ -398,7 +399,7 @@ export async function POST(request: NextRequest) {
       .insert({
         project_id: projectId,
         user_id: user.id,
-        event_type: signalType,
+        event_type: tractionSignalType,
         description: tractionSignalText.slice(0, 200),
         metadata: {
           source: "prompt",
@@ -411,33 +412,45 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ── 6. Award pineapples ─────────────────────────────────────────────────────
+  // ── 6. Award pineapples (idempotent, ledger-based) ──────────────────────────
+  let totalPineapples = 0;
+
   try {
-    // Get current balance
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("pineapple_balance")
-      .eq("id", user.id)
-      .single();
-
-    const currentBalance = profile?.pineapple_balance ?? 0;
-    const newBalance = currentBalance + PINEAPPLES_PER_PROMPT;
-
-    // Update balance
-    await supabase
-      .from("profiles")
-      .update({ pineapple_balance: newBalance })
-      .eq("id", user.id);
-
-    // Insert ledger entry
-    await supabase.from("reward_ledger").insert({
-      user_id: user.id,
-      project_id: projectId,
-      event_type: "prompt",
-      reward_amount: PINEAPPLES_PER_PROMPT,
-      balance_after: newBalance,
-      idempotency_key: `prompt_${userMsg.id}`,
+    // 6a. Prompt reward: 1 🍍
+    const promptReward = await awardReward({
+      supabase,
+      userId: user.id,
+      projectId,
+      eventType: "prompt",
+      idempotencyKey: `${userMsg.id}-prompt`,
     });
+    if (promptReward.rewarded) totalPineapples += promptReward.amount;
+
+    // 6b. Tag bonus: +1 🍍 when tagged with feature/customer/revenue
+    const rewardableTags = new Set(["feature", "customer", "revenue"]);
+    const effectiveTag = tag ?? null;
+    if (effectiveTag && rewardableTags.has(effectiveTag)) {
+      const tagReward = await awardReward({
+        supabase,
+        userId: user.id,
+        projectId,
+        eventType: "tag_prompt",
+        idempotencyKey: `${userMsg.id}-tag_prompt`,
+      });
+      if (tagReward.rewarded) totalPineapples += tagReward.amount;
+    }
+
+    // 6c. Traction signal reward: feature_shipped (3), customer_added (5), revenue_logged (10)
+    if (tractionSignalType && ["feature_shipped", "customer_added", "revenue_logged"].includes(tractionSignalType)) {
+      const tractionReward = await awardReward({
+        supabase,
+        userId: user.id,
+        projectId,
+        eventType: tractionSignalType,
+        idempotencyKey: `${userMsg.id}-${tractionSignalType}`,
+      });
+      if (tractionReward.rewarded) totalPineapples += tractionReward.amount;
+    }
   } catch (err) {
     console.error("[chat] Failed to award pineapples:", err);
   }
@@ -466,7 +479,7 @@ export async function POST(request: NextRequest) {
     intent: aiResult.intent,
     tag: tag ?? null,
     progressDelta: aiResult.business_update.progress_delta,
-    pineapples: PINEAPPLES_PER_PROMPT,
+    pineapples: totalPineapples,
   }, projectId);
 
   // ── 9. Return response ─────────────────────────────────────────────────────
@@ -474,7 +487,7 @@ export async function POST(request: NextRequest) {
     userMessage: userMsg,
     assistantMessage: assistantMsg ?? null,
     intent: aiResult.intent,
-    pineapples_earned: PINEAPPLES_PER_PROMPT,
+    pineapples_earned: totalPineapples,
     business_update: aiResult.business_update,
   });
 }

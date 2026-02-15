@@ -87,7 +87,7 @@ export const MessagesContainer = ({ projectId, onBusinessUpdate }: Props) => {
       const result = await sendMessage(content, tag)
       if (result) {
         if (result.pineapples_earned > 0) {
-          toast.success(`+${result.pineapples_earned} pineapple earned!`)
+          toast.success(`+${result.pineapples_earned} 🍍 ${result.pineapples_earned === 1 ? "pineapple" : "pineapples"} earned!`)
         }
         if (onBusinessUpdate && result.business_update) {
           onBusinessUpdate(result.business_update)

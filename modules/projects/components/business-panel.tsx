@@ -523,7 +523,7 @@ function LinkedAssetsSection({
   githubUrl: string | null;
   websiteUrl: string | null;
   isOwner: boolean;
-  onLink: (type: "linkedin" | "github" | "website", url: string) => Promise<void>;
+  onLink: (type: "linkedin" | "github" | "website", url: string) => Promise<{ pineapples_earned?: number } | void>;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<"linkedin" | "github" | "website">("linkedin");
@@ -565,9 +565,14 @@ function LinkedAssetsSection({
     if (!dialogUrl.trim()) return;
     setIsLinking(true);
     try {
-      await onLink(dialogType, dialogUrl.trim());
+      const result = await onLink(dialogType, dialogUrl.trim());
       setDialogOpen(false);
-      toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked! +5 🍍`);
+      const earned = result?.pineapples_earned ?? 0;
+      if (earned > 0) {
+        toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked! +${earned} 🍍`);
+      } else {
+        toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked!`);
+      }
     } catch {
       toast.error("Failed to link asset");
     } finally {

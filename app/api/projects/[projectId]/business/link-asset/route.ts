@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyCsrfToken } from "@/lib/csrf";
+import { awardReward } from "@/lib/rewards";
 
 /**
  * POST /api/projects/[projectId]/business/link-asset
@@ -99,34 +100,23 @@ export async function POST(
     console.error("Failed to insert link activity event:", eventError.message);
   }
 
-  // Award pineapples (5 per link)
-  const PINEAPPLE_REWARD = 5;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("pineapple_balance")
-    .eq("id", user.id)
-    .single();
-
-  if (profile) {
-    const newBalance = (profile.pineapple_balance ?? 0) + PINEAPPLE_REWARD;
-    await supabase
-      .from("profiles")
-      .update({ pineapple_balance: newBalance })
-      .eq("id", user.id);
-
-    // Log in reward ledger
-    await supabase.from("reward_ledger").insert({
-      user_id: user.id,
-      project_id: projectId,
-      event_type: "reward_earned",
-      reward_amount: PINEAPPLE_REWARD,
-      balance_after: newBalance,
-      idempotency_key: `link_${type}_${projectId}_${Date.now()}`,
+  // Award pineapples (idempotent, ledger-based — correct amount per type)
+  let pineapplesEarned = 0;
+  try {
+    const reward = await awardReward({
+      supabase,
+      userId: user.id,
+      projectId,
+      eventType: config.eventType,
+      idempotencyKey: `${config.eventType}_${projectId}`,
     });
+    pineapplesEarned = reward.amount;
+  } catch (err) {
+    console.error("[link-asset] Failed to award pineapples:", err);
   }
 
   return NextResponse.json({
     success: true,
-    pineapples_earned: PINEAPPLE_REWARD,
+    pineapples_earned: pineapplesEarned,
   });
 }

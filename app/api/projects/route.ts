@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
+import { awardReward } from "@/lib/rewards";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -200,10 +201,30 @@ export async function POST(request: NextRequest) {
     // Non-blocking — project was already created
   }
 
+  // Award pineapples for links provided at creation time (idempotent, ledger-based)
+  let pineapplesEarned = 0;
+
+  try {
+    // Website link provided at creation → link_website (3 🍍)
+    if (project.url) {
+      const reward = await awardReward({
+        supabase,
+        userId: user.id,
+        projectId: project.id,
+        eventType: "link_website",
+        idempotencyKey: `link_website_${project.id}`,
+      });
+      if (reward.rewarded) pineapplesEarned += reward.amount;
+    }
+  } catch (err) {
+    console.error("[projects] Failed to award creation rewards:", err);
+  }
+
   // Track analytics event
   await trackEventServer(supabase, user.id, "project_created", {
     projectId: project.id,
+    pineapples: pineapplesEarned,
   }, project.id);
 
-  return NextResponse.json({ project }, { status: 201 });
+  return NextResponse.json({ project, pineapples_earned: pineapplesEarned }, { status: 201 });
 }

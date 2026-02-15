@@ -171,7 +171,12 @@ export function NewProjectForm() {
         return;
       }
 
-      toast.success("Project created!");
+      const earned = data.pineapples_earned ?? 0;
+      if (earned > 0) {
+        toast.success(`Project created with a linked website! +${earned} 🍍 ${earned === 1 ? "pineapple" : "pineapples"} earned!`);
+      } else {
+        toast.success("Project created!");
+      }
       trackEvent("project_created", { projectId: data.project.id });
       router.push(`/projects/${data.project.id}`);
     } catch {
