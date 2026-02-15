@@ -56,6 +56,7 @@ export async function awardReward(
     p_project_id: projectId,
     p_event_type: eventType,
     p_idempotency_key: idempotencyKey,
+    p_user_id: userId,
   });
 
   if (error) {

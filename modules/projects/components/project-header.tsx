@@ -33,6 +33,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MessageSquare } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
+import { useCsrf } from "@/hooks/use-csrf"
 import { CreateListingDialog } from "@/modules/marketplace/components/create-listing-dialog"
 import { OfferDialog } from "./offer-dialog"
 import { useOffer } from "../hooks/use-offer"
@@ -73,6 +74,7 @@ export const ProjectHeader = ({
   onRefetchBalance,
 }: ProjectHeaderProps) => {
   const supabase = createClient()
+  const { csrfFetch } = useCsrf()
 
   // ── data state ──────────────────────────────────────────────
   const [project, setProject] = useState<ProjectData | null>(null)
@@ -191,10 +193,11 @@ export const ProjectHeader = ({
       return
     }
 
-    await supabase
-      .from("projects")
-      .update({ name: trimmed })
-      .eq("id", projectId)
+    await csrfFetch("/api/projects", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, name: trimmed }),
+    })
 
     setProject((prev) => (prev ? { ...prev, name: trimmed } : prev))
     setIsEditing(false)

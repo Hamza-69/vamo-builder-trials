@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { awardReward, REWARD_AMOUNTS } from "@/lib/rewards";
 
@@ -27,8 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Auth ───────────────────────────────────────────────────────────
-  const supabase = createClient();
-
+  const supabase = createClient();  const admin = createServiceClient();
   const {
     data: { user },
     error: authError,
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   // ── Delegate to shared reward logic ────────────────────────────────
   try {
     const result = await awardReward({
-      supabase,
+      supabase: admin,
       userId,
       projectId,
       eventType,

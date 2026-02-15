@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 
 export async function POST(request: NextRequest) {
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
+  const admin = createServiceClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -44,8 +46,8 @@ export async function POST(request: NextRequest) {
   const ext = file.name.split(".").pop() ?? "png";
   const filePath = `${user.id}/avatar.${ext}`;
 
-  // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage
+  // Upload to Supabase Storage (service role)
+  const { error: uploadError } = await admin.storage
     .from("avatars")
     .upload(filePath, file, {
       upsert: true,
@@ -62,10 +64,10 @@ export async function POST(request: NextRequest) {
   // Get public URL
   const {
     data: { publicUrl },
-  } = supabase.storage.from("avatars").getPublicUrl(filePath);
+  } = admin.storage.from("avatars").getPublicUrl(filePath);
 
-  // Update profile with new avatar URL
-  const { error: updateError } = await supabase
+  // Update profile with new avatar URL (service role)
+  const { error: updateError } = await admin
     .from("profiles")
     .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
     .eq("id", user.id);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
 
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
+  const admin = createServiceClient();
 
   const {
     data: { user },
@@ -59,11 +61,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // --- Call atomic redemption function ---
-  const { data, error } = await supabase.rpc("process_redemption", {
+  // --- Call atomic redemption function (service role) ---
+  const { data, error } = await admin.rpc("process_redemption", {
     p_amount: amount,
     p_reward_type: rewardType,
     p_project_id: projectId,
+    p_user_id: user.id,
   });
 
   if (error) {
@@ -78,8 +81,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  // Track analytics event
-  await trackEventServer(supabase, user.id, "reward_redeemed", {
+  // Track analytics event (service role)
+  await trackEventServer(admin, user.id, "reward_redeemed", {
     amount,
     rewardType,
   });

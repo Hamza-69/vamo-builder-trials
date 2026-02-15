@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import OpenAI from "openai";
 
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
+  const admin = createServiceClient();
 
   // Auth
   const {
@@ -218,7 +220,7 @@ Valuation guidelines:
   }
 
   // ── 5. Mark old offers as expired ──
-  const { error: expireError } = await supabase
+  const { error: expireError } = await admin
     .from("offers")
     .update({ status: "expired" })
     .eq("project_id", projectId)
@@ -230,7 +232,7 @@ Valuation guidelines:
   }
 
   // ── 6. Insert new offer ──
-  const { data: offer, error: insertError } = await supabase
+  const { data: offer, error: insertError } = await admin
     .from("offers")
     .insert({
       project_id: projectId,
@@ -253,7 +255,7 @@ Valuation guidelines:
   }
 
   // ── 7. Insert activity_event ──
-  const { error: eventError } = await supabase.from("activity_events").insert({
+  const { error: eventError } = await admin.from("activity_events").insert({
     project_id: projectId,
     user_id: user.id,
     event_type: "offer_received",

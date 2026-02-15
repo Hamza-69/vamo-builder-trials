@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
 import { awardReward } from "@/lib/rewards";
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
+  const admin = createServiceClient();
 
   // Authenticate
   const {
@@ -165,8 +167,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Insert project
-  const { data: project, error: insertError } = await supabase
+  // Insert project (service role — bypasses RLS)
+  const { data: project, error: insertError } = await admin
     .from("projects")
     .insert({
       owner_id: user.id,
@@ -186,8 +188,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Insert activity event
-  const { error: eventError } = await supabase
+  // Insert activity event (service role)
+  const { error: eventError } = await admin
     .from("activity_events")
     .insert({
       project_id: project.id,
@@ -208,7 +210,7 @@ export async function POST(request: NextRequest) {
     // Website link provided at creation → link_website (3 🍍)
     if (project.url) {
       const reward = await awardReward({
-        supabase,
+        supabase: admin,
         userId: user.id,
         projectId: project.id,
         eventType: "link_website",
@@ -220,11 +222,79 @@ export async function POST(request: NextRequest) {
     console.error("[projects] Failed to award creation rewards:", err);
   }
 
-  // Track analytics event
-  await trackEventServer(supabase, user.id, "project_created", {
+  // Track analytics event (service role)
+  await trackEventServer(admin, user.id, "project_created", {
     projectId: project.id,
     pineapples: pineapplesEarned,
   }, project.id);
 
   return NextResponse.json({ project, pineapples_earned: pineapplesEarned }, { status: 201 });
+}
+
+/**
+ * PATCH /api/projects
+ * Rename a project. Body: { projectId: string, name: string }
+ */
+export async function PATCH(request: NextRequest) {
+  const csrfValid = await verifyCsrfToken(request);
+  if (!csrfValid) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
+
+  const supabase = createClient();
+  const { createServiceClient } = await import("@/utils/supabase/service");
+  const admin = createServiceClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { projectId?: string; name?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { projectId, name: rawName } = body;
+  if (!projectId || typeof projectId !== "string") {
+    return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+  }
+
+  const name = rawName?.trim();
+  if (!name || name.length === 0) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+  if (name.length > 100) {
+    return NextResponse.json({ error: "Name must be 100 characters or fewer" }, { status: 400 });
+  }
+
+  // Verify ownership via RLS-scoped read
+  const { data: project, error: projError } = await supabase
+    .from("projects")
+    .select("id, owner_id")
+    .eq("id", projectId)
+    .eq("owner_id", user.id)
+    .single();
+
+  if (projError || !project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  // Mutate with service role (bypasses RLS)
+  const { error: updateError } = await admin
+    .from("projects")
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq("id", projectId);
+
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, name });
 }

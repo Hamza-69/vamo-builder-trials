@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@/utils/supabase/client";
+import { getCsrfToken, CSRF_HEADER_NAME } from "@/hooks/use-csrf";
 
 export type AnalyticsEvent =
   | { event: "project_created"; properties: { projectId: string } }
@@ -14,8 +14,8 @@ export type AnalyticsEvent =
 
 /**
  * Track an analytics event from a client component.
- * Inserts directly into analytics_events using the authenticated Supabase
- * client (anon key + user JWT). RLS allows users to insert their own events.
+ * Sends the event to the /api/analytics API route, which inserts it
+ * using the service-role key. No direct DB access from the client.
  *
  * Fires asynchronously — errors are logged but never thrown so they don't
  * break the user flow.
@@ -25,22 +25,16 @@ export async function trackEvent<T extends AnalyticsEvent>(
   properties: T["properties"],
 ) {
   try {
-    const supabase = createClient();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const token = getCsrfToken();
+    if (token) headers[CSRF_HEADER_NAME] = token;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return; // not logged in — skip silently
-
-    const projectId =
-      "projectId" in properties ? (properties as { projectId?: string }).projectId : undefined;
-
-    await supabase.from("analytics_events").insert({
-      user_id: user.id,
-      project_id: projectId ?? null,
-      event_name: eventName,
-      properties,
+    await fetch("/api/analytics", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ event_name: eventName, properties }),
     });
   } catch (error) {
     console.error("[analytics] Failed to track event:", eventName, error);

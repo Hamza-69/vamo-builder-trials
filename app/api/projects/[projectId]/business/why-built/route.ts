@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 
 /**
@@ -16,6 +17,7 @@ export async function PATCH(
   }
 
   const supabase = createClient();
+  const admin = createServiceClient();
   const projectId = params.projectId;
 
   const {
@@ -54,7 +56,7 @@ export async function PATCH(
     );
   }
 
-  const { data: updated, error: updateError } = await supabase
+  const { data: updated, error: updateError } = await admin
     .from("projects")
     .update({ why_built: whyBuilt || null })
     .eq("id", projectId)
