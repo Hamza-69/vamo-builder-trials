@@ -31,6 +31,7 @@ export function AppNavbar() {
   const supabase = createClient()
   const isMobile = useMediaQuery("(max-width: 767px)")
   const [user, setUser] = useState<{ id: string; email?: string; full_name?: string; avatar_url?: string } | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -48,6 +49,7 @@ export function AppNavbar() {
           avatar_url: profile?.avatar_url ?? undefined,
         })
       }
+      setAuthChecked(true)
     }
     fetchUser()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,7 +93,17 @@ export function AppNavbar() {
           })}
         </div>
 
-        {/* Right: Profile dropdown */}
+        {/* Right: Auth-dependent actions */}
+        {authChecked && !user ? (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/signup">Sign up</Link>
+            </Button>
+          </div>
+        ) : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -137,6 +149,7 @@ export function AppNavbar() {
             <ThemeSubmenu />
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </div>
     </nav>
   )

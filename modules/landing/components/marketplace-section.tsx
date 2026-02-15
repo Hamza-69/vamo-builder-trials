@@ -1,4 +1,6 @@
+import Link from "next/link"
 import { Tag, DollarSign, Eye, Shield } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export function MarketplaceSection() {
   return (
@@ -13,6 +15,9 @@ export function MarketplaceSection() {
             Optionally put your project on the Vamo marketplace. Buyers see your
             real traction data, making offers fast and transparent.
           </p>
+          <Button asChild size="lg" className="mt-6">
+            <Link href="/marketplace">Browse Marketplace</Link>
+          </Button>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -49,36 +54,6 @@ export function MarketplaceSection() {
               <p className="text-muted-foreground text-sm">{item.description}</p>
             </div>
           ))}
-        </div>
-
-        {/* Mock listing card */}
-        <div className="mt-12 mx-auto max-w-md rounded-2xl border bg-card shadow-md overflow-hidden">
-          <div className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-sm">🚀</div>
-                <span className="font-semibold">FoodDash</span>
-              </div>
-              <span className="text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-2.5 py-0.5">
-                Listed
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Food delivery app for college campuses. 2.4k MAU, growing 18% MoM.
-            </p>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-muted-foreground">Valuation</span>
-              <span className="font-semibold">$45,000</span>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <div className="flex-1 h-9 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center">
-                Make an offer
-              </div>
-              <div className="h-9 px-4 rounded-lg border text-sm font-medium flex items-center justify-center text-muted-foreground">
-                View
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
