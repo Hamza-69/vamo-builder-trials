@@ -172,9 +172,9 @@ export const ProjectView = ({ projectId }: Props) => {
         onRefetchBalance={handleRefetchBalance}
       />
 
-      <div className="flex flex-1 min-h-0 w-full">
+      <div className="flex flex-1 min-h-0 w-full overflow-hidden">
         {showMessages && (
-          <div style={{ flex: flexValues.messages }} className="flex flex-col min-h-0">
+          <div style={{ flex: flexValues.messages }} className="flex flex-col min-h-0 min-w-0 overflow-hidden">
             <ErrorBoundary fallback={<p>Error loading messages.</p>}>
               <Suspense fallback={<MessagesSkeleton />}>
                 <MessagesContainer projectId={projectId} onBusinessUpdate={handleBusinessUpdate} onPineappleEarned={handlePineappleEarned} />
@@ -186,7 +186,7 @@ export const ProjectView = ({ projectId }: Props) => {
         {showPreview && (
           <div
             style={{ flex: flexValues.preview }}
-            className={cn("flex flex-col min-h-0", showMessages && "border-l")}
+            className={cn("flex flex-col min-h-0 min-w-0 overflow-hidden", showMessages && "border-l")}
           >
             <WebPreview url={url} screenshotUrl={screenshotUrl} />
           </div>
@@ -195,7 +195,7 @@ export const ProjectView = ({ projectId }: Props) => {
         {showBusiness && (
           <div
             style={{ flex: flexValues.business }}
-            className={cn("flex flex-col min-h-0", (showMessages || showPreview) && "border-l")}
+            className={cn("flex flex-col min-h-0 min-w-0 overflow-hidden", (showMessages || showPreview) && "border-l")}
           >
             <BusinessPanel key={businessPanelKey} projectId={projectId} onPineappleEarned={handlePineappleEarned} />
           </div>
