@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 export async function signIn(formData: FormData) {
   const supabase = createClient();
@@ -72,4 +73,30 @@ export async function signUp(formData: FormData) {
   }
 
   return { success: "Check your email to confirm your account." };
+}
+
+export async function signInWithGoogle() {
+  const supabase = createClient();
+  const origin = headers().get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (data.url) {
+    redirect(data.url);
+  }
+
+  return { error: "Could not initiate Google sign-in." };
 }

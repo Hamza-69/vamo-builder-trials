@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { signIn } from "../actions";
+import { signIn, signInWithGoogle } from "../actions";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -19,6 +20,16 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    setError(null);
+    const result = await signInWithGoogle();
+    if (result?.error) {
+      setError(result.error);
+      setGoogleLoading(false);
     }
   }
 
@@ -32,12 +43,13 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Google (dummy) */}
+      {/* Google */}
       <Button
         variant="outline"
         className="w-full justify-center gap-2"
         type="button"
-        disabled
+        disabled={googleLoading || loading}
+        onClick={handleGoogleSignIn}
       >
         <svg viewBox="0 0 24 24" className="size-4">
           <path
@@ -57,7 +69,7 @@ export default function LoginPage() {
             fill="#EA4335"
           />
         </svg>
-        Continue with Google
+        {googleLoading ? "Connecting…" : "Continue with Google"}
       </Button>
 
       {/* Divider */}

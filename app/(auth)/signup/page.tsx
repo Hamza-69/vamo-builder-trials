@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { signUp } from "../actions";
+import { signUp, signInWithGoogle } from "../actions";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 const PASSWORD_RULES = [
@@ -22,6 +22,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -58,6 +59,16 @@ export default function SignupPage() {
     setLoading(false);
   }
 
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    setError(null);
+    const result = await signInWithGoogle();
+    if (result?.error) {
+      setError(result.error);
+      setGoogleLoading(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Heading */}
@@ -70,12 +81,13 @@ export default function SignupPage() {
         </p>
       </div>
 
-      {/* Google (dummy) */}
+      {/* Google */}
       <Button
         variant="outline"
         className="w-full justify-center gap-2"
         type="button"
-        disabled
+        disabled={googleLoading || loading}
+        onClick={handleGoogleSignIn}
       >
         <svg viewBox="0 0 24 24" className="size-4">
           <path
@@ -95,7 +107,7 @@ export default function SignupPage() {
             fill="#EA4335"
           />
         </svg>
-        Continue with Google
+        {googleLoading ? "Connecting…" : "Continue with Google"}
       </Button>
 
       {/* Divider */}
@@ -153,9 +165,8 @@ export default function SignupPage() {
                 return (
                   <li
                     key={rule.label}
-                    className={`flex items-center gap-1.5 text-xs ${
-                      passes ? "text-primary" : "text-muted-foreground"
-                    }`}
+                    className={`flex items-center gap-1.5 text-xs ${passes ? "text-primary" : "text-muted-foreground"
+                      }`}
                   >
                     {passes ? (
                       <CheckCircle2 className="size-3.5" />
