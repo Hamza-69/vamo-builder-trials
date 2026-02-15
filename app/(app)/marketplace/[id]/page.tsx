@@ -10,24 +10,30 @@ export default async function ListingPage({
 }) {
   const supabase = createClient();
 
-  const { data: listing, error } = await supabase
-    .from("listings")
-    .select(
-      `
-      *,
-      projects!inner(id, name, description, progress_score, screenshot_url, url),
-      profiles!inner(full_name, avatar_url)
-    `,
-    )
-    .eq("id", params.id)
-    .eq("status", "active")
-    .single();
+  // Run listing fetch and auth check in parallel
+  const [listingResult, userResult] = await Promise.all([
+    supabase
+      .from("listings")
+      .select(
+        `
+        *,
+        projects!inner(id, name, description, progress_score, screenshot_url, url),
+        profiles!inner(full_name, avatar_url)
+      `,
+      )
+      .eq("id", params.id)
+      .eq("status", "active")
+      .single(),
+    supabase.auth.getUser(),
+  ]);
+
+  const { data: listing, error } = listingResult;
 
   if (error || !listing) {
     notFound();
   }
 
-  // Compute outdated flag
+  // Compute outdated flag — parallelize the two sequential queries
   let is_outdated = false;
   if (listing.last_timeline_item_id) {
     const { data: snapshotEvent } = await supabase
@@ -48,10 +54,7 @@ export default async function ListingPage({
     }
   }
 
-  // Check if current user owns this listing
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = userResult.data.user;
   const isOwner = user?.id === listing.user_id;
 
   return <ListingDetailView listing={{ ...listing, is_outdated } as unknown as ListingDetail} isOwner={isOwner} />;

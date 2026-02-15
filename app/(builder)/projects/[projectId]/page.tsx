@@ -9,22 +9,20 @@ export default async function ProjectPage({
 }) {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Run auth + project ownership check in parallel
+  const [userResult, projectResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("projects")
+      .select("id, owner_id")
+      .eq("id", params.projectId)
+      .single(),
+  ])
 
-  if (!user) {
-    notFound()
-  }
+  const user = userResult.data.user
+  const project = projectResult.data
 
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", params.projectId)
-    .eq("owner_id", user.id)
-    .single()
-
-  if (!project) {
+  if (!user || !project || project.owner_id !== user.id) {
     notFound()
   }
 

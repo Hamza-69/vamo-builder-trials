@@ -9,7 +9,7 @@ export function useProjects() {
   const { csrfFetch } = useCsrf();
   const [projects, setProjects] = useState<Project[]>([]);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProjects = useCallback(

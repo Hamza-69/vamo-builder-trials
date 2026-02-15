@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ListingsToolbar, ListingsGrid } from "../components";
 import { useListings } from "../hooks/use-listings";
@@ -17,24 +17,27 @@ export function MarketplaceView() {
   const searchParams = useSearchParams();
   const { listings, total, isLoading, error, fetchListings } = useListings();
 
-  // Derive filters from URL search params
-  const filters = useMemo(
-    () => listingFiltersFromParams(searchParams),
-    [searchParams],
+  // Local state for filters — initialised from URL, then managed locally
+  const [filters, setFilters] = useState<ListingFilters>(() =>
+    listingFiltersFromParams(searchParams),
   );
 
-  // Fetch whenever URL-derived filters change
+  // Fetch whenever filters change
   useEffect(() => {
     fetchListings(filters);
   }, [filters, fetchListings]);
 
-  // Push filter changes to URL
+  // Sync URL when filters change (shallow — no server round-trip)
+  useEffect(() => {
+    const qs = listingFiltersToParams(filters);
+    window.history.replaceState(null, "", `${pathname}${qs ? `?${qs}` : ""}`);
+  }, [filters, pathname]);
+
   const handleFiltersChange = useCallback(
     (next: ListingFilters) => {
-      const qs = listingFiltersToParams(next);
-      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+      setFilters(next);
     },
-    [router, pathname],
+    [],
   );
 
   const handlePageChange = useCallback(

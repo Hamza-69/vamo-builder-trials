@@ -7,7 +7,7 @@ import { LISTINGS_PER_PAGE } from "../types";
 export function useListings() {
   const [listings, setListings] = useState<ListingWithProject[]>([]);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchListings = useCallback(async (filters: ListingFilters) => {

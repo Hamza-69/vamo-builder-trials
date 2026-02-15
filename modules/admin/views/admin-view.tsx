@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import {
   Tabs,
   TabsContent,
@@ -19,29 +19,33 @@ import { ProjectsTable } from "../components/projects-table";
 const VALID_TABS = ["overview", "users", "redemptions", "analytics", "projects"] as const;
 type AdminTab = (typeof VALID_TABS)[number];
 
+function getInitialTab(param: string | null): AdminTab {
+  return VALID_TABS.includes(param as AdminTab) ? (param as AdminTab) : "overview";
+}
+
 export function AdminView() {
   const admin = useAdmin();
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const tabParam = searchParams.get("tab");
-  const activeTab: AdminTab = VALID_TABS.includes(tabParam as AdminTab)
-    ? (tabParam as AdminTab)
-    : "overview";
+  const [activeTab, setActiveTab] = useState<AdminTab>(() =>
+    getInitialTab(searchParams.get("tab"))
+  );
 
   const handleTabChange = useCallback(
     (value: string) => {
+      const tab = value as AdminTab;
+      setActiveTab(tab);
       const params = new URLSearchParams(searchParams.toString());
-      if (value === "overview") {
+      if (tab === "overview") {
         params.delete("tab");
       } else {
-        params.set("tab", value);
+        params.set("tab", tab);
       }
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+      window.history.replaceState(null, "", `${pathname}${qs ? `?${qs}` : ""}`);
     },
-    [router, pathname, searchParams],
+    [pathname, searchParams],
   );
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
