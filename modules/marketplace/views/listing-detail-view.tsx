@@ -266,7 +266,7 @@ export function ListingDetailView({ listing, isOwner = false }: ListingDetailVie
               rel="noopener noreferrer"
             >
               <Users className="size-4" />
-              Verify on Public Panel
+              Business Panel
             </a>
           </Button>
 
