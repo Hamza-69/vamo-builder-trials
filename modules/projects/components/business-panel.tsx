@@ -747,12 +747,14 @@ function EditableHeader({
   name,
   description,
   isOwner,
+  isListed,
   projectId,
   onSave,
 }: {
   name: string;
   description: string | null;
   isOwner: boolean;
+  isListed: boolean;
   projectId: string;
   onSave: (fields: Record<string, unknown>) => Promise<void>;
 }) {
@@ -904,14 +906,29 @@ function EditableHeader({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link href={`/panel/public/${projectId}`} target="_blank">
-                <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
-                  <Share2 className="size-3.5" />
-                  <span className="hidden sm:inline">Public Page</span>
-                </Button>
-              </Link>
+              <span>
+                <Link
+                  href={isListed ? `/panel/public/${projectId}` : "#"}
+                  target={isListed ? "_blank" : undefined}
+                  className={cn(!isListed && "pointer-events-none")}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                    disabled={!isListed}
+                  >
+                    <Share2 className="size-3.5" />
+                    <span className="hidden sm:inline">Public Page</span>
+                  </Button>
+                </Link>
+              </span>
             </TooltipTrigger>
-            <TooltipContent>View public business page</TooltipContent>
+            <TooltipContent>
+              {isListed
+                ? "View public business page"
+                : "You need to be listed to open the public page"}
+            </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )}
@@ -972,6 +989,7 @@ export default function BusinessPanel({ projectId, onPineappleEarned }: Business
           name={project.name}
           description={project.description}
           isOwner={isOwner}
+          isListed={project.status === "listed"}
           projectId={projectId}
           onSave={updateProject}
         />
