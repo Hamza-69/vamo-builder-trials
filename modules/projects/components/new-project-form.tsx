@@ -237,7 +237,7 @@ export function NewProjectForm() {
                   <FormLabel>External URL</FormLabel>
                   <FormControl>
                     <Input
-                      type="url"
+                      type="text"
                       placeholder="https://my-project.lovable.app"
                       {...field}
                     />

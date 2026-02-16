@@ -13,13 +13,14 @@ interface Props {
   url?: string | null
   screenshotUrl?: string | null
   onOpenSettings?: () => void
+  isLoading?: boolean
 }
 
 type DeviceSate = "desktop" | "tablet" | "mobile"
 
 const LOAD_TIMEOUT = 5000
 
-export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
+export function WebPreview({ url, screenshotUrl, onOpenSettings, isLoading }: Props) {
   const [fragmentKey, setFragmentKey] = useState(0)
   const [copied, setCopied] = useState(false)
   // Loading state: true until iframe loads or times out
@@ -92,7 +93,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   }
 
   // ── No URL: empty state ──────────────────────────────────────────────
-  if (!url) {
+  if (!url && !isLoading) {
     return (
       <div className="flex flex-col w-full flex-1 min-h-0 items-center justify-center gap-4 p-8 text-center bg-muted/30">
         {screenshotUrl ? (
@@ -136,7 +137,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
             height={600}
             className="max-w-full max-h-[80%] rounded-md border object-contain shadow-sm"
           />
-          <Button variant="outline" size="sm" onClick={() => window.open(url, "_blank")}>
+          <Button variant="outline" size="sm" onClick={() => url && window.open(url, "_blank")}>
             <ExternalLinkIcon className="size-4 mr-1.5" />
             Open in new tab
           </Button>
@@ -155,7 +156,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
             This site cannot be embedded in an iframe.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => window.open(url, "_blank")}>
+        <Button variant="outline" size="sm" onClick={() => url && window.open(url, "_blank")}>
           Open in new tab
           <ExternalLinkIcon className="size-4 ml-1.5" />
         </Button>
@@ -167,8 +168,8 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
     <div className="flex flex-col w-full flex-1 min-h-0">
       {/* Toolbar */}
       <div className="p-2 border-b flex bg-sidebar items-center gap-x-4 shrink-0">
-        <Button size="sm" variant="outline" onClick={onRefresh}>
-          <RefreshCcwIcon className={cn("text-foreground", loading && "animate-spin")} />
+        <Button size="sm" variant="outline" onClick={onRefresh} disabled={!url || isLoading}>
+          <RefreshCcwIcon className={cn("text-foreground", (loading || isLoading) && "animate-spin")} />
         </Button>
 
         {(isTablet || isDesktop) && (
@@ -196,12 +197,16 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
           variant="outline"
           onClick={handleCopy}
           className="flex flex-1 justify-start text-start font-normal"
-          disabled={copied}
+          disabled={copied || !url || isLoading}
         >
-          <span className="truncate text-foreground">{url}</span>
+          {isLoading ? (
+            <Skeleton className="h-4 w-32" />
+          ) : (
+            <span className="truncate text-foreground">{url || "No URL"}</span>
+          )}
         </Button>
 
-        <Button size="sm" variant="outline" onClick={() => window.open(url, "_blank")}>
+        <Button size="sm" variant="outline" onClick={() => url && window.open(url, "_blank")} disabled={!url || isLoading}>
           <ExternalLinkIcon className="text-foreground" />
         </Button>
       </div>
@@ -209,7 +214,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
       {/* Preview area */}
       <div className="flex-1 bg-muted/30 overflow-hidden flex items-center justify-center relative">
         {/* Loading skeleton */}
-        {loading && (
+        {(loading || isLoading) && (
           <div className="absolute inset-0 z-20 flex flex-col gap-3 p-4 bg-background/80 backdrop-blur-sm">
             <Skeleton className="h-10 w-full rounded-md" />
             <Skeleton className="h-4 w-3/4 rounded-md" />
@@ -235,7 +240,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
           )}
           sandbox="allow-scripts allow-same-origin allow-forms"
           loading="lazy"
-          src={url}
+          src={url ?? undefined}
           onLoad={handleIframeLoad}
           onError={handleIframeError}
         />

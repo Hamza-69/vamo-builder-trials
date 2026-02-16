@@ -14,10 +14,12 @@ import {
   User,
   AlertTriangle,
   X,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useCsrf } from "@/hooks/use-csrf";
 import { toast } from "sonner";
 import type { ListingDetail, ListingMetrics, TimelineEvent } from "../types";
@@ -110,11 +112,10 @@ export function ListingDetailView({ listing, isOwner = false }: ListingDetailVie
                   <button
                     type="button"
                     onClick={() => setSelectedImage(url)}
-                    className={`relative shrink-0 size-20 rounded-md overflow-hidden bg-muted border-2 transition-colors ${
-                      heroImage === url
-                        ? "border-primary"
-                        : "border-transparent hover:border-muted-foreground/40"
-                    }`}
+                    className={`relative shrink-0 size-20 rounded-md overflow-hidden bg-muted border-2 transition-colors ${heroImage === url
+                      ? "border-primary"
+                      : "border-transparent hover:border-muted-foreground/40"
+                      }`}
                   >
                     <Image
                       src={url}
@@ -210,16 +211,16 @@ export function ListingDetailView({ listing, isOwner = false }: ListingDetailVie
             )}
             {(listing.asking_price_low != null ||
               listing.asking_price_high != null) && (
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <DollarSign className="size-5 text-primary" />
-                {listing.asking_price_low != null &&
-                listing.asking_price_high != null
-                  ? `$${listing.asking_price_low.toLocaleString()} – $${listing.asking_price_high.toLocaleString()}`
-                  : listing.asking_price_low != null
-                    ? `From $${listing.asking_price_low.toLocaleString()}`
-                    : `Up to $${listing.asking_price_high!.toLocaleString()}`}
-              </div>
-            )}
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  <DollarSign className="size-5 text-primary" />
+                  {listing.asking_price_low != null &&
+                    listing.asking_price_high != null
+                    ? `$${listing.asking_price_low.toLocaleString()} – $${listing.asking_price_high.toLocaleString()}`
+                    : listing.asking_price_low != null
+                      ? `From $${listing.asking_price_low.toLocaleString()}`
+                      : `Up to $${listing.asking_price_high!.toLocaleString()}`}
+                </div>
+              )}
           </div>
 
           <Separator />
@@ -252,6 +253,22 @@ export function ListingDetailView({ listing, isOwner = false }: ListingDetailVie
               </CardContent>
             </Card>
           </div>
+
+          <Button
+            variant="secondary"
+            className="w-full gap-2"
+            size="lg"
+            asChild
+          >
+            <a
+              href={`/panel/public/${listing.project_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Users className="size-4" />
+              Verify on Public Panel
+            </a>
+          </Button>
 
           <Separator />
 

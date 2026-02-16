@@ -43,6 +43,8 @@ export const ProjectView = ({ projectId }: Props) => {
     refetchBalanceRef.current = refetch
   }, [])
 
+  const [isLoading, setIsLoading] = useState(true)
+
   // Fetch project data for url and screenshot_url
   useEffect(() => {
     async function fetchProject() {
@@ -54,6 +56,8 @@ export const ProjectView = ({ projectId }: Props) => {
         }
       } catch {
         // Silently fail — the WebPreview will show its empty state
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchProject()
@@ -102,7 +106,7 @@ export const ProjectView = ({ projectId }: Props) => {
               </ErrorBoundary>
             </TabsContent>
             <TabsContent value="preview" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col">
-              <WebPreview url={url} screenshotUrl={screenshotUrl} />
+              <WebPreview url={url} screenshotUrl={screenshotUrl} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col overflow-hidden">
               <BusinessPanel
@@ -193,7 +197,7 @@ export const ProjectView = ({ projectId }: Props) => {
             style={{ flex: flexValues.preview }}
             className={cn("flex flex-col min-h-0 min-w-0 overflow-hidden", showMessages && "border-l")}
           >
-            <WebPreview url={url} screenshotUrl={screenshotUrl} />
+            <WebPreview url={url} screenshotUrl={screenshotUrl} isLoading={isLoading} />
           </div>
         )}
 
