@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Globe, ExternalLink, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
+import { Globe, ExternalLink, TrendingUp, DollarSign, AlertTriangle, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { ListingWithProject } from "../types";
 
 interface ListingCardProps {
@@ -56,7 +57,7 @@ export function ListingCard({ listing, onClick }: ListingCardProps) {
       </div>
 
       {/* Info */}
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-2 flex flex-col h-full">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-base leading-tight line-clamp-1 group-hover:text-primary transition-colors">
             {listing.title}
@@ -70,31 +71,52 @@ export function ListingCard({ listing, onClick }: ListingCardProps) {
           </p>
         )}
 
-        <div className="flex items-center gap-2 flex-wrap pt-1">
-          {listing.is_outdated && (
-            <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10">
-              <AlertTriangle className="size-3" />
-              Outdated
-            </Badge>
-          )}
-          {(listing.asking_price_low != null ||
-            listing.asking_price_high != null) && (
-            <Badge variant="outline" className="text-xs gap-1">
-              <DollarSign className="size-3" />
-              {listing.asking_price_low != null &&
-              listing.asking_price_high != null
-                ? `$${listing.asking_price_low.toLocaleString()} – $${listing.asking_price_high.toLocaleString()}`
-                : listing.asking_price_low != null
-                  ? `From $${listing.asking_price_low.toLocaleString()}`
-                  : `Up to $${listing.asking_price_high!.toLocaleString()}`}
-            </Badge>
-          )}
-          {progressScore > 0 && (
-            <Badge variant="secondary" className="text-xs gap-1">
-              <TrendingUp className="size-3" />
-              {progressScore}%
-            </Badge>
-          )}
+        <div className="flex-1" />
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            {listing.is_outdated && (
+              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10">
+                <AlertTriangle className="size-3" />
+                Outdated
+              </Badge>
+            )}
+            {(listing.asking_price_low != null ||
+              listing.asking_price_high != null) && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <DollarSign className="size-3" />
+                  {listing.asking_price_low != null &&
+                    listing.asking_price_high != null
+                    ? `$${listing.asking_price_low.toLocaleString()} – $${listing.asking_price_high.toLocaleString()}`
+                    : listing.asking_price_low != null
+                      ? `From $${listing.asking_price_low.toLocaleString()}`
+                      : `Up to $${listing.asking_price_high!.toLocaleString()}`}
+                </Badge>
+              )}
+            {progressScore > 0 && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <TrendingUp className="size-3" />
+                {progressScore}%
+              </Badge>
+            )}
+          </div>
+
+          <Button
+            variant="secondary"
+            className="w-full gap-2"
+            size="sm"
+            asChild
+            onClick={(e) => e.stopPropagation()}
+          >
+            <a
+              href={`/panel/public/${listing.project_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Users className="size-3.5" />
+              Public Panel
+            </a>
+          </Button>
         </div>
       </CardContent>
     </Card>
