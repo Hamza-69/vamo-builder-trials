@@ -51,6 +51,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!screenshots || !Array.isArray(screenshots) || screenshots.length === 0) {
+    return NextResponse.json(
+      { error: "At least one screenshot is required" },
+      { status: 400 },
+    );
+  }
+
   // Verify ownership and project status
   const { data: project, error: projError } = await supabase
     .from("projects")
@@ -213,9 +220,9 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  if (!Array.isArray(screenshots)) {
+  if (!Array.isArray(screenshots) || screenshots.length === 0) {
     return NextResponse.json(
-      { error: "screenshots must be an array" },
+      { error: "At least one screenshot is required" },
       { status: 400 },
     );
   }

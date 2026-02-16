@@ -550,7 +550,7 @@ export function CreateListingDialog({
           </Button>
           <Button
             onClick={handlePublish}
-            disabled={publishing || loading || !title.trim()}
+            disabled={publishing || loading || !title.trim() || screenshots.length === 0}
           >
             {publishing && <Loader2 className="size-4 animate-spin mr-2" />}
             {isRelist ? "Relist" : "Publish Listing"}
