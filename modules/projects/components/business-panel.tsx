@@ -564,6 +564,8 @@ function LinkedAssetsSection({
     setDialogOpen(true);
   };
 
+  const isEditing = !!assets.find((a) => a.type === dialogType)?.url;
+
   const handleLink = async () => {
     if (!dialogUrl.trim()) return;
     setIsLinking(true);
@@ -575,10 +577,10 @@ function LinkedAssetsSection({
         toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked! +${earned} 🍍`);
         onPineappleEarned?.();
       } else {
-        toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked!`);
+        toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} ${isEditing ? "updated" : "linked"}!`);
       }
     } catch {
-      toast.error("Failed to link asset");
+      toast.error("Failed to save asset");
     } finally {
       setIsLinking(false);
     }
@@ -647,10 +649,12 @@ function LinkedAssetsSection({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Link {dialogType.charAt(0).toUpperCase() + dialogType.slice(1)}
+              {isEditing ? "Update" : "Link"} {dialogType.charAt(0).toUpperCase() + dialogType.slice(1)}
             </DialogTitle>
             <DialogDescription>
-              Paste your {dialogType} URL below. You&apos;ll earn 5 🍍 for linking!
+              {isEditing
+                ? `Update your ${dialogType} URL below.`
+                : `Paste your ${dialogType} URL below. You'll earn 5 🍍 for linking!`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -672,7 +676,7 @@ function LinkedAssetsSection({
               Cancel
             </Button>
             <Button onClick={handleLink} disabled={isLinking || !dialogUrl.trim()}>
-              {isLinking ? "Linking…" : "Link"}
+              {isLinking ? (isEditing ? "Updating…" : "Linking…") : (isEditing ? "Update" : "Link")}
             </Button>
           </DialogFooter>
         </DialogContent>
