@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { writeLimiter } from "@/lib/rate-limit";
 
@@ -20,7 +19,6 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
 
   const {
     data: { user },
@@ -60,7 +58,7 @@ export async function POST(request: NextRequest) {
       ? (properties as { projectId?: string }).projectId ?? null
       : null;
 
-  const { error } = await admin.from("analytics_events").insert({
+  const { error } = await supabase.from("analytics_events").insert({
     user_id: user.id,
     project_id: projectId,
     event_name,

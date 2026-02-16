@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { awardReward } from "@/lib/rewards";
 
@@ -19,7 +18,6 @@ export async function POST(
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
   const projectId = params.projectId;
 
   const {
@@ -81,7 +79,7 @@ export async function POST(
   }
 
   // Update the project with the linked URL (service role)
-  const { error: updateError } = await admin
+  const { error: updateError } = await supabase
     .from("projects")
     .update({ [config.field]: trimmedUrl })
     .eq("id", projectId);
@@ -91,7 +89,7 @@ export async function POST(
   }
 
   // Create activity event (service role)
-  const { error: eventError } = await admin.from("activity_events").insert({
+  const { error: eventError } = await supabase.from("activity_events").insert({
     project_id: projectId,
     user_id: user.id,
     event_type: config.eventType,
@@ -106,7 +104,7 @@ export async function POST(
   let pineapplesEarned = 0;
   try {
     const reward = await awardReward({
-      supabase: admin,
+      supabase: supabase,
       userId: user.id,
       projectId,
       eventType: config.eventType,

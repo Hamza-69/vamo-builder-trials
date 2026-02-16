@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 
 export async function GET(request: NextRequest) {
@@ -89,7 +88,7 @@ export async function PATCH(request: NextRequest) {
     updateData.fulfilled_at = new Date().toISOString();
   }
 
-  const { data: redemption, error } = await createServiceClient()
+  const { data: redemption, error } = await supabase
     .from("redemptions")
     .update(updateData)
     .eq("id", body.id)

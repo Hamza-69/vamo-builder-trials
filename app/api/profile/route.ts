@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 
 export async function GET() {
@@ -33,7 +32,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -80,7 +78,7 @@ export async function PATCH(request: NextRequest) {
 
   updates.updated_at = new Date().toISOString();
 
-  const { error } = await admin
+  const { error } = await supabase
     .from("profiles")
     .update(updates)
     .eq("id", user.id);

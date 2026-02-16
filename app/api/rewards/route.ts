@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { awardReward, REWARD_AMOUNTS } from "@/lib/rewards";
 
@@ -13,7 +12,7 @@ import { awardReward, REWARD_AMOUNTS } from "@/lib/rewards";
  * Body: {
  *   userId:         string   — profile id (must match authenticated user)
  *   projectId:      string   — project id
- *   eventType:      string   — one of REWARD_AMOUNTS keys
+ *   eventType:      string   — one of REWARD_AMOUNts keys
  *   idempotencyKey: string   — deterministic key, e.g. `${messageId}-prompt-reward`
  * }
  */
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Auth ───────────────────────────────────────────────────────────
-  const supabase = createClient();  const admin = createServiceClient();
+  const supabase = createClient();
   const {
     data: { user },
     error: authError,
@@ -78,7 +77,7 @@ export async function POST(request: NextRequest) {
   // ── Delegate to shared reward logic ────────────────────────────────
   try {
     const result = await awardReward({
-      supabase: admin,
+      supabase: supabase,
       userId,
       projectId,
       eventType,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
 import { awardReward } from "@/lib/rewards";
@@ -100,7 +99,6 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
 
   // Authenticate
   const {
@@ -169,8 +167,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Insert project (service role — bypasses RLS)
-  const { data: project, error: insertError } = await admin
+  // Insert project (RLS allows insert)
+  const { data: project, error: insertError } = await supabase
     .from("projects")
     .insert({
       owner_id: user.id,
@@ -190,8 +188,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Insert activity event (service role)
-  const { error: eventError } = await admin
+  // Insert activity event (RLS allows insert)
+  const { error: eventError } = await supabase
     .from("activity_events")
     .insert({
       project_id: project.id,
@@ -212,7 +210,7 @@ export async function POST(request: NextRequest) {
     // Website link provided at creation → link_website (3 🍍)
     if (project.url) {
       const reward = await awardReward({
-        supabase: admin,
+        supabase: supabase,
         userId: user.id,
         projectId: project.id,
         eventType: "link_website",
@@ -224,8 +222,8 @@ export async function POST(request: NextRequest) {
     console.error("[projects] Failed to award creation rewards:", err);
   }
 
-  // Track analytics event (service role)
-  await trackEventServer(admin, user.id, "project_created", {
+  // Track analytics event
+  await trackEventServer(supabase, user.id, "project_created", {
     projectId: project.id,
     pineapples: pineapplesEarned,
   }, project.id);
@@ -244,8 +242,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const { createServiceClient } = await import("@/utils/supabase/service");
-  const admin = createServiceClient();
 
   const {
     data: { user },
@@ -288,8 +284,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // Mutate with service role (bypasses RLS)
-  const { error: updateError } = await admin
+  // Mutate (RLS allows update)
+  const { error: updateError } = await supabase
     .from("projects")
     .update({ name, updated_at: new Date().toISOString() })
     .eq("id", projectId);

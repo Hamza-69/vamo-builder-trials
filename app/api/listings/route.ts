@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 
 /**
@@ -24,7 +23,6 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
 
   // Authenticate
   const {
@@ -79,7 +77,7 @@ export async function POST(request: NextRequest) {
   const isRelist = project.status === "listed";
 
   if (isRelist) {
-    await admin
+    await supabase
       .from("listings")
       .update({ status: "archived", updated_at: new Date().toISOString() })
       .eq("project_id", project_id)
@@ -115,7 +113,7 @@ export async function POST(request: NextRequest) {
   };
 
   // Insert listing (service role)
-  const { data: listing, error: listingError } = await admin
+  const { data: listing, error: listingError } = await supabase
     .from("listings")
     .insert({
       project_id,
@@ -140,7 +138,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Update project status to 'listed' and sync valuation from listing price
-  await admin
+  await supabase
     .from("projects")
     .update({
       status: "listed",
@@ -155,7 +153,7 @@ export async function POST(request: NextRequest) {
     : `Project listed on marketplace: "${title}"`;
 
   // Insert activity event (service role)
-  await admin.from("activity_events").insert({
+  await supabase.from("activity_events").insert({
     project_id,
     user_id: user.id,
     event_type: eventType,
@@ -164,7 +162,7 @@ export async function POST(request: NextRequest) {
   });
 
   // Log analytics event (service role)
-  await admin.from("analytics_events").insert({
+  await supabase.from("analytics_events").insert({
     user_id: user.id,
     project_id,
     event_name: eventType,
@@ -195,7 +193,6 @@ export async function PATCH(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
 
   const {
     data: { user },
@@ -238,7 +235,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Not your listing" }, { status: 403 });
   }
 
-  const { data: updated, error: updateError } = await admin
+  const { data: updated, error: updateError } = await supabase
     .from("listings")
     .update({
       screenshots,

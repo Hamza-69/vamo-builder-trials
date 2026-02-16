@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { createServiceClient } from "@/utils/supabase/service";
 import { verifyCsrfToken } from "@/lib/csrf";
 import { trackEventServer } from "@/lib/analytics-server";
 import { awardReward } from "@/lib/rewards";
@@ -153,7 +152,6 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const admin = createServiceClient();
 
   // Auth
   const {
@@ -209,7 +207,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 1. Insert user message (service role) ──────────────────────────────────────────
-  const { data: userMsg, error: userMsgError } = await admin
+  const { data: userMsg, error: userMsgError } = await supabase
     .from("messages")
     .insert({
       project_id: projectId,
@@ -270,7 +268,7 @@ export async function POST(request: NextRequest) {
         overflowMessages[overflowMessages.length - 1]?.created_at;
 
       if (lastOverflowTs) {
-        await admin.from("chat_summaries").insert({
+        await supabase.from("chat_summaries").insert({
           project_id: projectId,
           summary: combinedSummary,
           messages_up_to: lastOverflowTs,
@@ -338,7 +336,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 4. Insert assistant message (service role) ─────────────────────────────────────
-  const { data: assistantMsg, error: assistantMsgError } = await admin
+  const { data: assistantMsg, error: assistantMsgError } = await supabase
     .from("messages")
     .insert({
       project_id: projectId,
@@ -358,7 +356,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 5. Insert activity event (service role) ──────────────────────────────────────
-  const { error: eventError } = await admin
+  const { error: eventError } = await supabase
     .from("activity_events")
     .insert({
       project_id: projectId,
@@ -389,7 +387,7 @@ export async function POST(request: NextRequest) {
     tractionSignalType = intentToSignalType[aiResult.intent] ?? "feature_shipped";
 
     // Insert into traction_signals table (service role)
-    const { error: signalError } = await admin
+    const { error: signalError } = await supabase
       .from("traction_signals")
       .insert({
         project_id: projectId,
@@ -406,7 +404,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Also log as activity event for the timeline (service role)
-    const { error: tractionEventError } = await admin
+    const { error: tractionEventError } = await supabase
       .from("activity_events")
       .insert({
         project_id: projectId,
@@ -430,7 +428,7 @@ export async function POST(request: NextRequest) {
   try {
     // 6a. Prompt reward: 1 🍍
     const promptReward = await awardReward({
-      supabase: admin,
+      supabase: supabase,
       userId: user.id,
       projectId,
       eventType: "prompt",
@@ -443,7 +441,7 @@ export async function POST(request: NextRequest) {
     const effectiveTag = tag ?? null;
     if (effectiveTag && rewardableTags.has(effectiveTag)) {
       const tagReward = await awardReward({
-        supabase: admin,
+        supabase: supabase,
         userId: user.id,
         projectId,
         eventType: "tag_prompt",
@@ -455,7 +453,7 @@ export async function POST(request: NextRequest) {
     // 6c. Traction signal reward: feature_shipped (3), customer_added (5), revenue_logged (10)
     if (tractionSignalType && ["feature_shipped", "customer_added", "revenue_logged"].includes(tractionSignalType)) {
       const tractionReward = await awardReward({
-        supabase: admin,
+        supabase: supabase,
         userId: user.id,
         projectId,
         eventType: tractionSignalType,
@@ -472,7 +470,7 @@ export async function POST(request: NextRequest) {
     const currentScore = project.progress_score ?? 0;
     const newScore = Math.min(100, currentScore + aiResult.business_update.progress_delta);
 
-    const { error: updateError } = await admin
+    const { error: updateError } = await supabase
       .from("projects")
       .update({
         progress_score: newScore,
@@ -486,7 +484,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 8. Track analytics (service role) ──────────────────────────────────────────
-  await trackEventServer(admin, user.id, "chat_prompt", {
+  await trackEventServer(supabase, user.id, "chat_prompt", {
     projectId,
     intent: aiResult.intent,
     tag: tag ?? null,
