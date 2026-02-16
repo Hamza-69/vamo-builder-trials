@@ -602,8 +602,8 @@ function LinkedAssetsSection({
             </div>
             <span className="text-xs font-medium">{asset.label}</span>
             {asset.url ? (
-              <div className="flex items-center gap-1">
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+              <div className="flex items-center gap-0.5 flex-wrap justify-center">
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
                   Linked
                 </Badge>
                 <a
@@ -618,7 +618,7 @@ function LinkedAssetsSection({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-5 w-5 ml-1 text-muted-foreground hover:text-foreground"
+                    className="h-5 w-5 text-muted-foreground hover:text-foreground"
                     onClick={() => openDialog(asset.type)}
                   >
                     <PencilIcon className="size-3" />
@@ -638,7 +638,7 @@ function LinkedAssetsSection({
               </Button>
             ) : (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                Not linked
+                Unlinked
               </Badge>
             )}
           </div>
