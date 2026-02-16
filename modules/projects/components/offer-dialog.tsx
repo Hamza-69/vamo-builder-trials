@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { OfferData } from "../hooks/use-offer";
-import { TooltipContent, TooltipProvider, TooltipTrigger, Tooltip} from "@/components/ui/tooltip";
+import { TooltipContent, TooltipProvider, TooltipTrigger, Tooltip } from "@/components/ui/tooltip";
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ export function OfferDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-full max-h-[100dvh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md w-full max-h-[100dvh] overflow-y-auto min-w-0 [overflow-wrap:anywhere]">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="size-8 animate-spin text-primary" />
@@ -98,7 +98,7 @@ export function OfferDialog({
             </DialogHeader>
 
             {/* Offer range */}
-            <div className="rounded-lg border bg-card p-4">
+            <div className="rounded-lg border bg-card p-4 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="size-4 text-green-500" />
                 <span className="text-xs text-muted-foreground font-medium">
@@ -112,7 +112,7 @@ export function OfferDialog({
             </div>
 
             {/* Reasoning */}
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <h4 className="text-sm font-semibold">Reasoning</h4>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {offer.reasoning}
