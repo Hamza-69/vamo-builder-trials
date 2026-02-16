@@ -3,7 +3,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { User } from "@supabase/supabase-js";
 
 export async function signIn(formData: FormData) {
   const supabase = createClient();
