@@ -1,33 +1,36 @@
-"use client";
-
-import { useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { MailIcon } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { useSearchParams } from "next/navigation";
+import { MailIcon, Loader2, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { resendVerificationEmail } from "../actions";
 
 export default function ConfirmEmailPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const supabase = createClient();
+  async function handleResend() {
+    if (!email) return;
+    setResending(true);
+    setResendError(null);
+    setResendSuccess(false);
 
-    // Listen for auth state changes — when the user confirms their email
-    // and the session becomes active, redirect to /projects.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        router.replace("/projects");
+    try {
+      const result = await resendVerificationEmail(email);
+      if (result?.error) {
+        setResendError(result.error);
+      } else {
+        setResendSuccess(true);
       }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router]);
+    } catch {
+      setResendError("An error occurred while resending the email.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-6 text-center">
@@ -50,8 +53,36 @@ export default function ConfirmEmailPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 w-full">
-        <p className="text-xs text-muted-foreground">
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        {email && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleResend}
+            disabled={resending || resendSuccess}
+            className="w-full"
+          >
+            {resending ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Resending...
+              </>
+            ) : resendSuccess ? (
+              <>
+                <CheckCircle2 className="mr-2 size-4 text-green-500" />
+                Email resent!
+              </>
+            ) : (
+              "Resend confirmation email"
+            )}
+          </Button>
+        )}
+
+        {resendError && (
+          <p className="text-xs text-destructive">{resendError}</p>
+        )}
+
+        <p className="text-xs text-muted-foreground mt-2">
           Didn&apos;t receive the email? Check your spam folder or{" "}
           <Link
             href="/signup"
