@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { OfferData } from "../hooks/use-offer";
+import { TooltipContent, TooltipProvider, TooltipTrigger, Tooltip} from "@/components/ui/tooltip";
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ interface OfferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   offer: OfferData | null;
+  progressScore: number;
   isLoading: boolean;
   error: string | null;
   onListForSale: (offerLow: number, offerHigh: number) => void;
@@ -46,13 +48,16 @@ export function OfferDialog({
   open,
   onOpenChange,
   offer,
+  progressScore,
   isLoading,
   error,
   onListForSale,
 }: OfferDialogProps) {
+  const isListDisabled = progressScore < 20;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[100dvh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md w-full max-h-[100dvh] overflow-y-auto">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="size-8 animate-spin text-primary" />
@@ -100,7 +105,7 @@ export function OfferDialog({
                   Estimated Offer Range
                 </span>
               </div>
-              <p className="text-2xl font-bold tracking-tight">
+              <p className="text-2xl font-bold tracking-tight break-words">
                 {formatCurrency(offer.offer_low)} –{" "}
                 {formatCurrency(offer.offer_high)}
               </p>
@@ -137,23 +142,38 @@ export function OfferDialog({
               sale price may vary based on market conditions and buyer interest.
             </p>
 
-            <DialogFooter className="flex-row gap-2 sm:gap-2">
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="w-full sm:flex-1"
                 onClick={() => onOpenChange(false)}
               >
                 Dismiss
               </Button>
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  onOpenChange(false);
-                  onListForSale(offer.offer_low, offer.offer_high);
-                }}
-              >
-                List for Sale
-              </Button>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="w-full sm:flex-1" tabIndex={isListDisabled ? 0 : undefined}>
+                      <Button
+                        className="w-full"
+                        disabled={isListDisabled}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onListForSale(offer.offer_low, offer.offer_high);
+                        }}
+                      >
+                        List for Sale
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {isListDisabled && (
+                    <TooltipContent side="bottom">
+                      Reach a progress score of 20 to unlock listing
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </DialogFooter>
           </>
         ) : null}

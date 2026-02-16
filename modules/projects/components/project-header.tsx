@@ -427,6 +427,7 @@ export const ProjectHeader = ({
         open={offerDialogOpen}
         onOpenChange={setOfferDialogOpen}
         offer={offer}
+        progressScore={progressScore}
         isLoading={offerLoading}
         error={offerError}
         onListForSale={(low, high) => {
