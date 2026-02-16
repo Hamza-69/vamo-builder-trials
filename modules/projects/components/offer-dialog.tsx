@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,10 @@ export function OfferDialog({
       <DialogContent className="sm:max-w-md w-full max-h-[100dvh] overflow-y-auto min-w-0 [overflow-wrap:anywhere]">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <VisuallyHidden>
+              <DialogTitle>Generating offer</DialogTitle>
+              <DialogDescription>Analyzing your project data and activity</DialogDescription>
+            </VisuallyHidden>
             <Loader2 className="size-8 animate-spin text-primary" />
             <div className="text-center space-y-1">
               <p className="text-sm font-medium">Generating your offer…</p>
@@ -70,6 +75,10 @@ export function OfferDialog({
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <VisuallyHidden>
+              <DialogTitle>Error</DialogTitle>
+              <DialogDescription>Failed to generate offer</DialogDescription>
+            </VisuallyHidden>
             <AlertTriangle className="size-8 text-destructive" />
             <div className="text-center space-y-1">
               <p className="text-sm font-medium">Failed to generate offer</p>
