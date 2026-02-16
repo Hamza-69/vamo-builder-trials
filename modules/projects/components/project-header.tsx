@@ -1,12 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
-  MoreVerticalIcon,
   PencilIcon,
   StoreIcon,
   SparklesIcon,
@@ -37,17 +36,8 @@ import { useCsrf } from "@/hooks/use-csrf"
 import { CreateListingDialog } from "@/modules/marketplace/components/create-listing-dialog"
 import { OfferDialog } from "./offer-dialog"
 import { useOffer } from "../hooks/use-offer"
+import { useProject } from "../hooks/use-project"
 
-interface ProjectData {
-  id: string
-  name: string
-  progress_score: number | null
-  status: string | null
-}
-
-interface ProfileData {
-  pineapple_balance: number | null
-}
 
 interface ProjectHeaderProps {
   projectId: string
@@ -77,8 +67,7 @@ export const ProjectHeader = ({
   const { csrfFetch } = useCsrf()
 
   // ── data state ──────────────────────────────────────────────
-  const [project, setProject] = useState<ProjectData | null>(null)
-  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const { project, profile, refetch: refetchProject, setProject } = useProject(projectId)
 
   // ── inline‑edit state ───────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false)
@@ -95,89 +84,51 @@ export const ProjectHeader = ({
   const { offer, isLoading: offerLoading, error: offerError, requestOffer } = useOffer(projectId)
 
   // ── fetch project + profile ─────────────────────────────────
+  // ── fetch outdated status ───────────────────────────────────
   useEffect(() => {
-    const fetchData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    const checkOutdated = async () => {
+      if (project && project.status === "listed") {
+        const { data: activeListing } = await supabase
+          .from("listings")
+          .select("id, last_timeline_item_id, screenshots")
+          .eq("project_id", projectId)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single()
 
-      if (!user) return
-
-      const [projectRes, profileRes] = await Promise.all([
-        supabase
-          .from("projects")
-          .select("id, name, progress_score, status")
-          .eq("id", projectId)
-          .single(),
-        supabase
-          .from("profiles")
-          .select("pineapple_balance")
-          .eq("id", user.id)
-          .single(),
-      ])
-
-      if (projectRes.data) {
-        setProject(projectRes.data)
-        setEditName(projectRes.data.name)
-
-        // Check if project is listed but has new activity (outdated)
-        if (projectRes.data.status === "listed") {
-          const { data: activeListing } = await supabase
-            .from("listings")
-            .select("id, last_timeline_item_id, screenshots")
+        if (activeListing?.last_timeline_item_id) {
+          const { count } = await supabase
+            .from("activity_events")
+            .select("id", { count: "exact", head: true })
             .eq("project_id", projectId)
-            .eq("status", "active")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single()
-
-          if (activeListing?.last_timeline_item_id) {
-            const { count } = await supabase
-              .from("activity_events")
-              .select("id", { count: "exact", head: true })
-              .eq("project_id", projectId)
-              .not("event_type", "in", "(listing_created,listing_relisted,reward_earned,reward_redeemed)")
-              .gt("created_at",
-                // Get the created_at of the last timeline item
-                (await supabase
-                  .from("activity_events")
-                  .select("created_at")
-                  .eq("id", activeListing.last_timeline_item_id)
-                  .single()
-                ).data?.created_at ?? ""
-              )
-
-            setIsOutdated((count ?? 0) > 0)
-            setOldScreenshots(
-              (activeListing.screenshots as string[] | null) ?? []
+            .not("event_type", "in", "(listing_created,listing_relisted,reward_earned,reward_redeemed)")
+            .gt("created_at",
+              // Get the created_at of the last timeline item
+              (await supabase
+                .from("activity_events")
+                .select("created_at")
+                .eq("id", activeListing.last_timeline_item_id)
+                .single()
+              ).data?.created_at ?? ""
             )
-          }
+
+          setIsOutdated((count ?? 0) > 0)
+          setOldScreenshots(
+            (activeListing.screenshots as string[] | null) ?? []
+          )
         }
       }
-      if (profileRes.data) setProfile(profileRes.data)
     }
 
-    fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
-
-  // ── expose a refetch function so siblings can refresh balance ──
-  const refetchBalance = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase
-      .from("profiles")
-      .select("pineapple_balance")
-      .eq("id", user.id)
-      .single()
-    if (data) setProfile(data)
-  }, [supabase])
+    checkOutdated()
+    // Update edit name when project loads
+    if (project && !isEditing) setEditName(project.name)
+  }, [projectId, project, isEditing, supabase])
 
   useEffect(() => {
-    onRefetchBalance?.(refetchBalance)
-  }, [refetchBalance, onRefetchBalance])
+    onRefetchBalance?.(refetchProject)
+  }, [refetchProject, onRefetchBalance])
 
   // ── focus input when editing starts ─────────────────────────
   useEffect(() => {
