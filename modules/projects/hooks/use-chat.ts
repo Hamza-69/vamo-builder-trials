@@ -153,7 +153,11 @@ export function useChat(projectId: string) {
             next.push(data.userMessage);
           }
           if (data.assistantMessage) {
-            next.push(data.assistantMessage);
+            // Patch with the real pineapple total from the response
+            next.push({
+              ...data.assistantMessage,
+              pineapples_earned: data.pineapples_earned,
+            });
           }
           return next;
         });

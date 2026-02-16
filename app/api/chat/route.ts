@@ -370,7 +370,64 @@ export async function POST(request: NextRequest) {
     };
   }
 
-  // ── 5. Insert assistant message (service role) ─────────────────────────────────────
+  // ── 5. Compute traction signal type (needed for rewards) ─────────────────────
+  const tractionSignalText = aiResult.business_update.traction_signal;
+  let tractionSignalType: string | null = null;
+
+  if (tractionSignalText) {
+    const intentToSignalType: Record<string, string> = {
+      feature: "feature_shipped",
+      customer: "customer_added",
+      revenue: "revenue_logged",
+    };
+    tractionSignalType = intentToSignalType[aiResult.intent] ?? "feature_shipped";
+  }
+
+  // ── 6. Award pineapples (idempotent, ledger-based) ──────────────────────────
+  // Computed BEFORE inserting the assistant message so it can store the real count.
+  let totalPineapples = 0;
+
+  try {
+    // 6a. Prompt reward: 1 🍍
+    const promptReward = await awardReward({
+      supabase: supabase,
+      userId: user.id,
+      projectId,
+      eventType: "prompt",
+      idempotencyKey: `${userMsg.id}-prompt`,
+    });
+    if (promptReward.rewarded) totalPineapples += promptReward.amount;
+
+    // 6b. Tag bonus: +1 🍍 when tagged with feature/customer/revenue
+    const rewardableTags = new Set(["feature", "customer", "revenue", "ask"]);
+    const effectiveTag = tag ?? null;
+    if (effectiveTag && rewardableTags.has(effectiveTag)) {
+      const tagReward = await awardReward({
+        supabase: supabase,
+        userId: user.id,
+        projectId,
+        eventType: "tag_prompt",
+        idempotencyKey: `${userMsg.id}-tag_prompt`,
+      });
+      if (tagReward.rewarded) totalPineapples += tagReward.amount;
+    }
+
+    // 6c. Traction signal reward: feature_shipped (3), customer_added (5), revenue_logged (10)
+    if (tractionSignalType && ["feature_shipped", "customer_added", "revenue_logged"].includes(tractionSignalType)) {
+      const tractionReward = await awardReward({
+        supabase: supabase,
+        userId: user.id,
+        projectId,
+        eventType: tractionSignalType,
+        idempotencyKey: `${userMsg.id}-${tractionSignalType}`,
+      });
+      if (tractionReward.rewarded) totalPineapples += tractionReward.amount;
+    }
+  } catch (err) {
+    console.error("[chat] Failed to award pineapples:", err);
+  }
+
+  // ── 7. Insert assistant message with real pineapple count ───────────────────
   const { data: assistantMsg, error: assistantMsgError } = await supabase
     .from("messages")
     .insert({
@@ -380,7 +437,7 @@ export async function POST(request: NextRequest) {
       content: aiResult.reply,
       extracted_intent: aiResult.intent,
       tag: tag ?? aiResult.intent,
-      pineapples_earned: 1, // display value; actual reward below
+      pineapples_earned: totalPineapples,
       message_type: "success",
     })
     .select()
@@ -390,7 +447,7 @@ export async function POST(request: NextRequest) {
     console.error("[chat] Failed to insert assistant message:", assistantMsgError.message);
   }
 
-  // ── 6. Insert activity event (service role) ──────────────────────────────────────
+  // ── 8. Insert activity event ────────────────────────────────────────────────
   const { error: eventError } = await supabase
     .from("activity_events")
     .insert({
@@ -409,19 +466,9 @@ export async function POST(request: NextRequest) {
     console.error("[chat] Failed to insert activity event:", eventError.message);
   }
 
-  // ── 6b. Insert traction signal into dedicated table + log activity event ────
-  const tractionSignalText = aiResult.business_update.traction_signal;
-  let tractionSignalType: string | null = null;
-
-  if (tractionSignalText) {
-    const intentToSignalType: Record<string, string> = {
-      feature: "feature_shipped",
-      customer: "customer_added",
-      revenue: "revenue_logged",
-    };
-    tractionSignalType = intentToSignalType[aiResult.intent] ?? "feature_shipped";
-
-    // Insert into traction_signals table (service role)
+  // ── 8b. Insert traction signal into dedicated table + log activity event ────
+  if (tractionSignalText && tractionSignalType) {
+    // Insert into traction_signals table
     const { error: signalError } = await supabase
       .from("traction_signals")
       .insert({
@@ -438,7 +485,7 @@ export async function POST(request: NextRequest) {
       console.error("[chat] Failed to insert traction signal:", signalError.message);
     }
 
-    // Also log as activity event for the timeline (service role)
+    // Also log as activity event for the timeline
     const { error: tractionEventError } = await supabase
       .from("activity_events")
       .insert({
@@ -455,49 +502,6 @@ export async function POST(request: NextRequest) {
     if (tractionEventError) {
       console.error("[chat] Failed to insert traction activity event:", tractionEventError.message);
     }
-  }
-
-  // ── 7. Award pineapples (idempotent, ledger-based) ──────────────────────────
-  let totalPineapples = 0;
-
-  try {
-    // 7a. Prompt reward: 1 🍍
-    const promptReward = await awardReward({
-      supabase: supabase,
-      userId: user.id,
-      projectId,
-      eventType: "prompt",
-      idempotencyKey: `${userMsg.id}-prompt`,
-    });
-    if (promptReward.rewarded) totalPineapples += promptReward.amount;
-
-    // 7b. Tag bonus: +1 🍍 when tagged with feature/customer/revenue
-    const rewardableTags = new Set(["feature", "customer", "revenue", "ask"]);
-    const effectiveTag = tag ?? null;
-    if (effectiveTag && rewardableTags.has(effectiveTag)) {
-      const tagReward = await awardReward({
-        supabase: supabase,
-        userId: user.id,
-        projectId,
-        eventType: "tag_prompt",
-        idempotencyKey: `${userMsg.id}-tag_prompt`,
-      });
-      if (tagReward.rewarded) totalPineapples += tagReward.amount;
-    }
-
-    // 7c. Traction signal reward: feature_shipped (3), customer_added (5), revenue_logged (10)
-    if (tractionSignalType && ["feature_shipped", "customer_added", "revenue_logged"].includes(tractionSignalType)) {
-      const tractionReward = await awardReward({
-        supabase: supabase,
-        userId: user.id,
-        projectId,
-        eventType: tractionSignalType,
-        idempotencyKey: `${userMsg.id}-${tractionSignalType}`,
-      });
-      if (tractionReward.rewarded) totalPineapples += tractionReward.amount;
-    }
-  } catch (err) {
-    console.error("[chat] Failed to award pineapples:", err);
   }
 
   // ── 8. Update progress score if applicable ──────────────────────────────────
