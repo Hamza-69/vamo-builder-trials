@@ -105,7 +105,12 @@ export const ProjectView = ({ projectId }: Props) => {
               <WebPreview url={url} screenshotUrl={screenshotUrl} />
             </TabsContent>
             <TabsContent value="business" className="h-full mt-0 border-0 p-0 data-[state=active]:flex flex-col overflow-hidden">
-              <BusinessPanel key={businessPanelKey} projectId={projectId} onPineappleEarned={handlePineappleEarned} />
+              <BusinessPanel
+                key={businessPanelKey}
+                projectId={projectId}
+                onPineappleEarned={handlePineappleEarned}
+                onProjectUpdate={() => handleBusinessUpdate({} as any)}
+              />
             </TabsContent>
           </div>
         </Tabs>
@@ -197,7 +202,12 @@ export const ProjectView = ({ projectId }: Props) => {
             style={{ flex: flexValues.business }}
             className={cn("flex flex-col min-h-0 min-w-0 overflow-hidden", (showMessages || showPreview) && "border-l")}
           >
-            <BusinessPanel key={businessPanelKey} projectId={projectId} onPineappleEarned={handlePineappleEarned} />
+            <BusinessPanel
+              key={businessPanelKey}
+              projectId={projectId}
+              onPineappleEarned={handlePineappleEarned}
+              onProjectUpdate={() => handleBusinessUpdate({} as any)}
+            />
           </div>
         )}
       </div>

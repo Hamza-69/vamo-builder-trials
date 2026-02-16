@@ -941,9 +941,10 @@ function EditableHeader({
 interface BusinessPanelProps {
   projectId: string;
   onPineappleEarned?: () => void;
+  onProjectUpdate?: () => void;
 }
 
-export default function BusinessPanel({ projectId, onPineappleEarned }: BusinessPanelProps) {
+export default function BusinessPanel({ projectId, onPineappleEarned, onProjectUpdate }: BusinessPanelProps) {
   const {
     data,
     isLoading,
@@ -991,7 +992,10 @@ export default function BusinessPanel({ projectId, onPineappleEarned }: Business
           isOwner={isOwner}
           isListed={project.status === "listed"}
           projectId={projectId}
-          onSave={updateProject}
+          onSave={async (fields) => {
+            await updateProject(fields);
+            onProjectUpdate?.();
+          }}
         />
 
         <Separator />
@@ -1010,6 +1014,7 @@ export default function BusinessPanel({ projectId, onPineappleEarned }: Business
             isOwner={isOwner}
             onSave={async (low, high) => {
               await updateProject({ valuation_low: low, valuation_high: high });
+              onProjectUpdate?.();
             }}
           />
         </SectionWrapper>
@@ -1027,6 +1032,7 @@ export default function BusinessPanel({ projectId, onPineappleEarned }: Business
             isOwner={isOwner}
             onSave={async (value) => {
               await updateProject({ why_built: value });
+              onProjectUpdate?.();
             }}
           />
         </SectionWrapper>
@@ -1066,7 +1072,16 @@ export default function BusinessPanel({ projectId, onPineappleEarned }: Business
             githubUrl={project.github_url}
             websiteUrl={project.url}
             isOwner={isOwner}
-            onLink={linkAsset}
+            onLink={async (type, url) => {
+              // Normalize URL
+              let normalizedUrl = url.trim();
+              if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) {
+                normalizedUrl = `https://${normalizedUrl}`;
+              }
+              const res = await linkAsset(type, normalizedUrl);
+              onProjectUpdate?.();
+              return res;
+            }}
             onPineappleEarned={onPineappleEarned}
           />
         </SectionWrapper>

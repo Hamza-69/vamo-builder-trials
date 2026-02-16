@@ -40,25 +40,33 @@ const formSchema = z.object({
     .refine((v) => v.length > 0, "Project name is required"),
   description: z
     .string()
-    .max(500, "Description must be 500 characters or fewer")
-    .optional()
-    .or(z.literal("")),
+    .max(500, "Description must be 500 characters or fewer"),
   url: z
     .string()
-    .optional()
-    .or(z.literal(""))
+    .transform((val) => {
+      if (!val) return val;
+      let url = val.trim();
+      if (!url) return "";
+      if (!/^https?:\/\//i.test(url)) {
+        url = `https://${url}`;
+      }
+      return url;
+    })
     .refine(
       (val) => {
-        if (!val || val.trim() === "") return true;
-        return val.trim().startsWith("http://") || val.trim().startsWith("https://");
+        if (!val) return true;
+        try {
+          new URL(val);
+          return true;
+        } catch {
+          return false;
+        }
       },
-      { message: "URL must start with http:// or https://" }
+      { message: "Please enter a valid URL" }
     ),
   why_built: z
     .string()
-    .max(1000, "Must be 1000 characters or fewer")
-    .optional()
-    .or(z.literal("")),
+    .max(1000, "Must be 1000 characters or fewer"),
 });
 
 type FormValues = z.infer<typeof formSchema>;

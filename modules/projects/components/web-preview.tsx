@@ -22,7 +22,9 @@ const LOAD_TIMEOUT = 5000
 export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   const [fragmentKey, setFragmentKey] = useState(0)
   const [copied, setCopied] = useState(false)
+  // Loading state: true until iframe loads or times out
   const [loading, setLoading] = useState(true)
+  // Failed state: true if iframe fails to load (timeout or error)
   const [failed, setFailed] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
@@ -37,15 +39,25 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
     else setDevice("desktop")
   }, [isDesktop, isTablet, isMobile])
 
-  // Start load timeout whenever the iframe key or url changes
+  // Reset state when URL changes
   useEffect(() => {
-    if (!url) return
+    if (!url) {
+      setLoading(false)
+      setFailed(false)
+      return
+    }
 
     setLoading(true)
     setFailed(false)
 
+    // Clear any existing timeout
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+
+    // Set a timeout to mark as failed if it takes too long
     timeoutRef.current = setTimeout(() => {
       setLoading(false)
+      // If we have a screenshot, we show that instead of a hard error
+      // But we still mark as failed to show the fallback
       setFailed(true)
     }, LOAD_TIMEOUT)
 
@@ -67,6 +79,8 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   }
 
   const onRefresh = () => {
+    setLoading(true)
+    setFailed(false)
     setFragmentKey((prev) => prev + 1)
   }
 
@@ -80,7 +94,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   // ── No URL: empty state ──────────────────────────────────────────────
   if (!url) {
     return (
-      <div className="flex flex-col w-full flex-1 min-h-0 items-center justify-center gap-4 p-8 text-center">
+      <div className="flex flex-col w-full flex-1 min-h-0 items-center justify-center gap-4 p-8 text-center bg-muted/30">
         {screenshotUrl ? (
           <Image
             src={screenshotUrl}
@@ -114,7 +128,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
   const renderFallback = () => {
     if (screenshotUrl) {
       return (
-        <div className="flex flex-col items-center justify-center w-full h-full gap-3 p-4">
+        <div className="flex flex-col items-center justify-center w-full h-full gap-3 p-4 bg-muted/30">
           <Image
             src={screenshotUrl}
             alt="Project screenshot"
@@ -131,7 +145,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-4 p-8 text-center">
+      <div className="flex flex-col items-center justify-center w-full h-full gap-4 p-8 text-center bg-muted/30">
         <div className="flex size-14 items-center justify-center rounded-full bg-muted">
           <ImageIcon className="size-6 text-muted-foreground" />
         </div>
@@ -154,7 +168,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
       {/* Toolbar */}
       <div className="p-2 border-b flex bg-sidebar items-center gap-x-4 shrink-0">
         <Button size="sm" variant="outline" onClick={onRefresh}>
-          <RefreshCcwIcon  className="text-foreground" />
+          <RefreshCcwIcon className={cn("text-foreground", loading && "animate-spin")} />
         </Button>
 
         {(isTablet || isDesktop) && (
@@ -188,15 +202,15 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
         </Button>
 
         <Button size="sm" variant="outline" onClick={() => window.open(url, "_blank")}>
-          <ExternalLinkIcon className="text-foreground"/>
+          <ExternalLinkIcon className="text-foreground" />
         </Button>
       </div>
 
       {/* Preview area */}
       <div className="flex-1 bg-muted/30 overflow-hidden flex items-center justify-center relative">
         {/* Loading skeleton */}
-        {loading && !failed && (
-          <div className="absolute inset-0 z-10 flex flex-col gap-3 p-4">
+        {loading && (
+          <div className="absolute inset-0 z-20 flex flex-col gap-3 p-4 bg-background/80 backdrop-blur-sm">
             <Skeleton className="h-10 w-full rounded-md" />
             <Skeleton className="h-4 w-3/4 rounded-md" />
             <Skeleton className="h-4 w-1/2 rounded-md" />
@@ -205,7 +219,7 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
         )}
 
         {/* Fallback */}
-        {failed && renderFallback()}
+        {!loading && failed && renderFallback()}
 
         {/* Iframe — always mounted so onLoad/onError can fire */}
         <iframe
@@ -216,7 +230,8 @@ export function WebPreview({ url, screenshotUrl, onOpenSettings }: Props) {
             device === "tablet" && cn("w-[768px] h-[calc(100%-2rem)] rounded-md", isTablet && "w-full h-full"),
             device === "mobile" && "w-[375px] h-[calc(100%-2rem)] rounded-md",
             failed && "hidden",
-            loading && "opacity-0"
+            // We don't hide it while loading, just cover it with the skeleton
+            // This maintains layout stability
           )}
           sandbox="allow-scripts allow-same-origin allow-forms"
           loading="lazy"
