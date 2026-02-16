@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { MailIcon, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resendVerificationEmail } from "../actions";
+import { createClient } from "@/utils/supabase/server";
 
 export function ConfirmEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+  const router = useRouter();
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -19,6 +21,24 @@ export function ConfirmEmailContent() {
     setResending(true);
     setResendError(null);
     setResendSuccess(false);
+    
+    useEffect(() => {
+      const supabase = createClient();
+
+      // Listen for auth state changes — when the user confirms their email
+      // and the session becomes active, redirect to /projects.
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN") {
+          router.replace("/projects");
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }, [router]);
 
     try {
       const result = await resendVerificationEmail(email);
