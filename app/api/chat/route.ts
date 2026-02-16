@@ -28,26 +28,48 @@ interface AiResponse {
 
 const VALID_TAGS = new Set(["feature", "customer", "revenue", "ask", "general"]);
 const VALID_INTENTS = new Set(["feature", "customer", "revenue", "ask", "general"]);
-const CONTEXT_MESSAGE_LIMIT = 20;
+const CONTEXT_MESSAGE_LIMIT = 11;
+const SUMMARIZATION_THRESHOLD = 20;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function generateSummary(
   messages: { role: string; content: string }[],
+  existingSummary: string | null,
 ): Promise<string> {
   const completion = await openai.chat.completions.create({
     model: "gpt-5.2",
     messages: [
       {
         role: "system",
-        content:
-          "Summarise the following conversation between a startup founder and their AI co-pilot into a concise paragraph. Preserve key decisions, milestones, metrics, and any action items. Keep it under 200 words.",
+        content: `You are an expert AI summarizer for a startup founder's co-pilot.
+Your task is to create a COMPREHENSIVE and DETAILED summary of the provided conversation history.
+This summary will be used as the SOLE context for future AI interactions, so it must not lose any critical information.
+
+<existing_summary>
+${existingSummary || "No previous summary."}
+</existing_summary>
+
+<new_messages_to_incorporate>
+The following messages are the oldest in the current history and need to be merged into the summary.
+</new_messages_to_incorporate>
+
+Guidelines:
+1. **Preserve Context**: Retain all key decisions, feature requirements, user feedback details, metrics, and milestones.
+2. **Action Items**: Clearly list any pending or completed action items.
+3. **User Preferences**: Note any specific preferences or constraints mentioned by the founder.
+4. **Technical Details**: Keep technical specifics (stack, libraries, architectural choices) if mentioned.
+5. **Business Context**: track revenue, valuation, and traction signals.
+6. **Conciseness**: Be dense but readable. meaningful bullet points are good.
+7. **Continuity**: Ensure the summary flows logically and integrates the new messages with the existing summary.
+
+Output ONLY the new summary text. Do not include meta-commentary.`,
       },
       {
         role: "user",
         content: messages
           .map((m) => `${m.role === "user" ? "Founder" : "Vamo"}: ${m.content}`)
-          .join("\n"),
+          .join("\n\n"),
       },
     ],
   });
@@ -71,7 +93,7 @@ Why the user built this project: ${project.why_built ?? "Not specified."}
 
 Current progress score: ${project.progress_score ?? 0}/100
 
-${existingSummary ? `Here is a summary of earlier conversation:\n${existingSummary}\n` : ""}
+${existingSummary ? `### 🧠 Long-Term Memory (Summary of past conversation):\n${existingSummary}\n` : ""}
 
 Your job:
 1. Respond helpfully to their update or question. Keep it concise — 2-3 sentences max. Be encouraging but honest.
@@ -227,65 +249,78 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 2. Load context: last 20 messages + any existing summary ────────────────
-  const { data: recentMessages } = await supabase
-    .from("messages")
-    .select("id, role, content, created_at")
-    .eq("project_id", projectId)
-    .order("created_at", { ascending: false })
-    .limit(CONTEXT_MESSAGE_LIMIT + 1); // +1 to check if we need to summarise older ones
-
-  const sortedMessages = (recentMessages ?? []).reverse();
-
-  // Load existing summary
-  const { data: existingSummary } = await supabase
+  // ── 2. Load unsummarized context ──────────────────────────────────────────────
+  // Fetch latest summary to know where to start
+  const { data: lastSummaryData } = await supabase
     .from("chat_summaries")
     .select("summary, messages_up_to")
     .eq("project_id", projectId)
-    .order("created_at", { ascending: false })
+    .order("messages_up_to", { ascending: false })
     .limit(1)
     .single();
 
-  let summaryText = existingSummary?.summary ?? null;
+  const messagesUpTo = lastSummaryData?.messages_up_to;
+  let summaryText = lastSummaryData?.summary ?? null;
 
-  // If there are more messages than the limit, summarise the overflow
-  if (sortedMessages.length > CONTEXT_MESSAGE_LIMIT) {
-    const overflowMessages = sortedMessages.slice(
-      0,
-      sortedMessages.length - CONTEXT_MESSAGE_LIMIT,
-    );
+  // Build query for unsummarized messages
+  let query = supabase
+    .from("messages")
+    .select("id, role, content, created_at")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: true }); // Get them in chronological order for easier slicing
 
-    try {
-      const newSummaryPart = await generateSummary(
-        overflowMessages.map((m) => ({ role: m.role, content: m.content })),
-      );
+  if (messagesUpTo) {
+    query = query.gt("created_at", messagesUpTo);
+  }
 
-      const combinedSummary = summaryText
-        ? `${summaryText}\n\n${newSummaryPart}`
-        : newSummaryPart;
+  // Fetch all unsummarized messages (including the one we just inserted)
+  const { data: unsummarizedMessages, error: messagesError } = await query;
 
-      const lastOverflowTs =
-        overflowMessages[overflowMessages.length - 1]?.created_at;
+  if (messagesError) {
+    return NextResponse.json({ error: messagesError.message }, { status: 500 });
+  }
 
-      if (lastOverflowTs) {
+  let finalContextMessages = unsummarizedMessages ?? [];
+
+  // ── 3. Check for Summarization Trigger (count > 20) ───────────────────────────
+  // Example: 20 previous + 1 new = 21 messages.
+  // We want to keep the latest 10 + current new = 11 messages as context.
+  // So we summarize the first (Total - 11) messages.
+  // If count is 21, we summarize 10 messages.
+
+  if (finalContextMessages.length > SUMMARIZATION_THRESHOLD) {
+    const messagesToKeepCount = CONTEXT_MESSAGE_LIMIT; // 10 previous + 1 current user msg
+    const messagesToSummarizeCount = finalContextMessages.length - messagesToKeepCount;
+
+    if (messagesToSummarizeCount > 0) {
+      const messagesToSummarize = finalContextMessages.slice(0, messagesToSummarizeCount);
+      const messagesToKeep = finalContextMessages.slice(messagesToSummarizeCount);
+
+      try {
+        console.log(`[chat] Summarizing ${messagesToSummarize.length} messages...`);
+        const newSummary = await generateSummary(
+          messagesToSummarize.map((m) => ({ role: m.role, content: m.content })),
+          summaryText,
+        );
+
+        // Save new summary
+        const lastSummarizedMsg = messagesToSummarize[messagesToSummarize.length - 1];
         await supabase.from("chat_summaries").insert({
           project_id: projectId,
-          summary: combinedSummary,
-          messages_up_to: lastOverflowTs,
+          summary: newSummary,
+          messages_up_to: lastSummarizedMsg.created_at,
         });
-      }
 
-      summaryText = combinedSummary;
-    } catch (err) {
-      console.error("[chat] Failed to generate summary:", err);
-      // Non-blocking — continue with whatever summary we had
+        summaryText = newSummary;
+        finalContextMessages = messagesToKeep;
+      } catch (err) {
+        console.error("[chat] Failed to generate summary:", err);
+        // Continue with full context if summary fails
+      }
     }
   }
 
-  // Build the messages window for OpenAI (last 20)
-  const contextWindow = sortedMessages.slice(-CONTEXT_MESSAGE_LIMIT);
-
-  // ── 3. Call OpenAI ──────────────────────────────────────────────────────────
+  // ── 4. Call OpenAI ──────────────────────────────────────────────────────────
   let aiResult: AiResponse;
 
   try {
@@ -296,7 +331,7 @@ export async function POST(request: NextRequest) {
           role: "system" as const,
           content: buildSystemPrompt(project, summaryText),
         },
-        ...contextWindow.map((m) => ({
+        ...finalContextMessages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
         })),
@@ -335,7 +370,7 @@ export async function POST(request: NextRequest) {
     };
   }
 
-  // ── 4. Insert assistant message (service role) ─────────────────────────────────────
+  // ── 5. Insert assistant message (service role) ─────────────────────────────────────
   const { data: assistantMsg, error: assistantMsgError } = await supabase
     .from("messages")
     .insert({
@@ -355,7 +390,7 @@ export async function POST(request: NextRequest) {
     console.error("[chat] Failed to insert assistant message:", assistantMsgError.message);
   }
 
-  // ── 5. Insert activity event (service role) ──────────────────────────────────────
+  // ── 6. Insert activity event (service role) ──────────────────────────────────────
   const { error: eventError } = await supabase
     .from("activity_events")
     .insert({
@@ -374,7 +409,7 @@ export async function POST(request: NextRequest) {
     console.error("[chat] Failed to insert activity event:", eventError.message);
   }
 
-  // ── 5b. Insert traction signal into dedicated table + log activity event ────
+  // ── 6b. Insert traction signal into dedicated table + log activity event ────
   const tractionSignalText = aiResult.business_update.traction_signal;
   let tractionSignalType: string | null = null;
 
@@ -422,11 +457,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ── 6. Award pineapples (idempotent, ledger-based) ──────────────────────────
+  // ── 7. Award pineapples (idempotent, ledger-based) ──────────────────────────
   let totalPineapples = 0;
 
   try {
-    // 6a. Prompt reward: 1 🍍
+    // 7a. Prompt reward: 1 🍍
     const promptReward = await awardReward({
       supabase: supabase,
       userId: user.id,
@@ -436,7 +471,7 @@ export async function POST(request: NextRequest) {
     });
     if (promptReward.rewarded) totalPineapples += promptReward.amount;
 
-    // 6b. Tag bonus: +1 🍍 when tagged with feature/customer/revenue
+    // 7b. Tag bonus: +1 🍍 when tagged with feature/customer/revenue
     const rewardableTags = new Set(["feature", "customer", "revenue", "ask"]);
     const effectiveTag = tag ?? null;
     if (effectiveTag && rewardableTags.has(effectiveTag)) {
@@ -450,7 +485,7 @@ export async function POST(request: NextRequest) {
       if (tagReward.rewarded) totalPineapples += tagReward.amount;
     }
 
-    // 6c. Traction signal reward: feature_shipped (3), customer_added (5), revenue_logged (10)
+    // 7c. Traction signal reward: feature_shipped (3), customer_added (5), revenue_logged (10)
     if (tractionSignalType && ["feature_shipped", "customer_added", "revenue_logged"].includes(tractionSignalType)) {
       const tractionReward = await awardReward({
         supabase: supabase,
@@ -465,7 +500,7 @@ export async function POST(request: NextRequest) {
     console.error("[chat] Failed to award pineapples:", err);
   }
 
-  // ── 7. Update progress score if applicable ──────────────────────────────────
+  // ── 8. Update progress score if applicable ──────────────────────────────────
   if (aiResult.business_update.progress_delta > 0) {
     const currentScore = project.progress_score ?? 0;
     const newScore = Math.min(100, currentScore + aiResult.business_update.progress_delta);
@@ -483,7 +518,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ── 8. Track analytics (service role) ──────────────────────────────────────────
+  // ── 9. Track analytics (service role) ──────────────────────────────────────────
   await trackEventServer(supabase, user.id, "chat_prompt", {
     projectId,
     intent: aiResult.intent,
@@ -492,7 +527,7 @@ export async function POST(request: NextRequest) {
     pineapples: totalPineapples,
   }, projectId);
 
-  // ── 9. Return response ─────────────────────────────────────────────────────
+  // ── 10. Return response ─────────────────────────────────────────────────────
   return NextResponse.json({
     userMessage: userMsg,
     assistantMessage: assistantMsg ?? null,
