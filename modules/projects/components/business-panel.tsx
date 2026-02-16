@@ -573,7 +573,7 @@ function LinkedAssetsSection({
       const result = await onLink(dialogType, dialogUrl.trim());
       setDialogOpen(false);
       const earned = result?.pineapples_earned ?? 0;
-      if (earned > 0) {
+      if (earned > 0 && !isEditing) {
         toast.success(`${dialogType.charAt(0).toUpperCase() + dialogType.slice(1)} linked! +${earned} 🍍`);
         onPineappleEarned?.();
       } else {
