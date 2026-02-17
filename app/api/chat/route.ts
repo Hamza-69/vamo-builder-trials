@@ -39,7 +39,7 @@ async function generateSummary(
 ): Promise<string> {
   const completion = await openai.chat.completions.create({
     model: "gpt-5.2",
-    max_tokens: 16384,
+    max_completion_tokens: 16384,
     messages: [
       {
         role: "system",
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
-      max_tokens: 4096,
+      max_completion_tokens: 4096,
       messages: [
         {
           role: "system" as const,
