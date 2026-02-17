@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
+      max_tokens: 2048,
       messages: [
         {
           role: "system",

@@ -39,12 +39,15 @@ async function generateSummary(
 ): Promise<string> {
   const completion = await openai.chat.completions.create({
     model: "gpt-5.2",
+    max_tokens: 16384,
     messages: [
       {
         role: "system",
         content: `You are an expert AI summarizer for a startup founder's co-pilot.
 Your task is to create a COMPREHENSIVE and DETAILED summary of the provided conversation history.
 This summary will be used as the SOLE context for future AI interactions, so it must not lose any critical information.
+The Upper Limit for summaries is 10,000 words, but you should aim for much lower depending on the present info to be summarized.
+Ratio to aim for is 50% of the information input size.
 
 <existing_summary>
 ${existingSummary || "No previous summary."}
@@ -96,7 +99,7 @@ Current progress score: ${project.progress_score ?? 0}/100
 ${existingSummary ? `### 🧠 Long-Term Memory (Summary of past conversation):\n${existingSummary}\n` : ""}
 
 Your job:
-1. Respond helpfully to their update or question. Keep it concise — 2-3 sentences max. Be encouraging but honest.
+1. Respond helpfully to their update or question. Keep it concise — 2-3 sentences max. It can reach a 3-5 paragraphs as an upper limit if the user is asking a complicated knowledge base question. Be encouraging but honest.
 2. Classify the intent of their message based ONLY on its actual content. Pick the single most accurate label:
    - "feature"  → they are talking about building, shipping, or planning a product feature or technical work.
    - "customer" → they mention users, user feedback, interviews, sign-ups, waitlists, or anything user/customer related.
@@ -326,6 +329,7 @@ export async function POST(request: NextRequest) {
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
+      max_tokens: 4096,
       messages: [
         {
           role: "system" as const,

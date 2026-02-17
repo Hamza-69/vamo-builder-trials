@@ -71,14 +71,14 @@ export function rateLimit({ interval, limit }: RateLimitOptions) {
 
 // ── Pre-configured limiters for common use cases ──────────────────────────────
 
-/** AI endpoints: 20 requests per minute per user */
-export const aiLimiter = rateLimit({ interval: 60_000, limit: 50 });
+/** AI endpoints: 10 requests per minute per user */
+export const aiLimiter = rateLimit({ interval: 60_000, limit: 10 });
 
 /** Auth endpoints: 10 requests per minute per IP */
-export const authLimiter = rateLimit({ interval: 60_000, limit: 50 });
+export const authLimiter = rateLimit({ interval: 60_000, limit: 10 });
 
 /** General write endpoints: 30 requests per minute per user */
-export const writeLimiter = rateLimit({ interval: 60_000, limit: 50 });
+export const writeLimiter = rateLimit({ interval: 60_000, limit: 30 });
 
 /** File upload endpoints: 10 requests per minute per user */
-export const uploadLimiter = rateLimit({ interval: 60_000, limit: 50 });
+export const uploadLimiter = rateLimit({ interval: 60_000, limit: 10 });
