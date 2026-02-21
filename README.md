@@ -159,8 +159,6 @@ WHERE email = 'your-email@example.com';
 - **No automated tests** — The project does not currently include a test suite.
 - **Local Supabase not pre-configured** — The `supabase/config.toml` is present but the project is designed to run against a hosted Supabase instance. Running `supabase start` locally may require additional configuration.
 - **Image storage** — Project and listing images are stored in Supabase Storage buckets (`avatars`, `projects`, `listings`). These buckets and their policies are created by the migrations, but file size limits and allowed MIME types may need tuning for production use.
-- **Build Ignores Typescript Errors:** In building there is no typescript errors as they are ignored. I will be working on fixing each of them later on and stop ignoring.
-
 ---
 
 ## Scripts
